@@ -74,6 +74,9 @@ def as_variant(raw, divisor: int | None) -> ua.Variant:
 async def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     config = load_config()
+    if not config.opc_password and not config.allow_insecure:
+        logger.error("OPC_PASSWORD vacio: el servidor no arranca sin seguridad (OPC_ALLOW_INSECURE=1 solo para pruebas)")
+        return 1
     logger.info("Servidor OPC UA arrancando en opc.tcp://%s:%d", config.opc_endpoint, config.opc_port)
 
     bridge = MqttBridge(config)
@@ -88,7 +91,7 @@ async def main() -> int:
     if config.opc_password:
         await configure_security(server, Path(config.pki_dir))
     else:
-        logger.warning("OPC_PASSWORD vacio: servidor SIN seguridad (solo para pruebas)")
+        logger.warning("OPC_ALLOW_INSECURE=1: servidor SIN seguridad ni autenticacion (solo para pruebas)")
 
     idx = await server.register_namespace("otbridge")
     plant = await server.nodes.objects.add_object(idx, "PlantaSimulada")

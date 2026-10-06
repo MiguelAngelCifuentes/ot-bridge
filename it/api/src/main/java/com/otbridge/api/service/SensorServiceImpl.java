@@ -67,7 +67,7 @@ public class SensorServiceImpl implements SensorService {
                 "SELECT mean(\"value\") FROM \"sensor_readings\" "
                         + "WHERE (\"variable\" = '%s' AND \"plc\" = '%s') "
                         + "AND time > now() - %dm GROUP BY time(%s) fill(null)",
-                variable, plc, minutes, interval);
+                literal(variable), literal(plc), minutes, interval);
 
         JsonNode result = influx.query(query);
 
@@ -89,6 +89,11 @@ public class SensorServiceImpl implements SensorService {
     @Override
     public void writeTelemetry(List<TelemetrySample> samples) {
         sensorWriteRepository.updateLastValues(samples);
+    }
+
+    /** Escapa un valor para un literal InfluxQL entre comillas simples (evita inyeccion si el dato cambia). */
+    private static String literal(String value) {
+        return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     private Sensor requireById(Long id) {

@@ -53,11 +53,11 @@ services:
       INFLUXDB_HTTP_AUTH_ENABLED: "true"
       INFLUXDB_DB: ${INFLUX_DB:-plant}
       INFLUXDB_ADMIN_USER: ${INFLUX_ADMIN_USER}
-      INFLUXDB_ADMIN_PASSWORD: ${INFLUX_ADMIN_PASSWORD}
+      INFLUXDB_ADMIN_PASSWORD: ${INFLUX_ADMIN_PASSWORD:?falta INFLUX_ADMIN_PASSWORD en .env}
       INFLUXDB_WRITE_USER: ${INFLUX_WRITE_USER}
-      INFLUXDB_WRITE_USER_PASSWORD: ${INFLUX_WRITE_PASSWORD}
+      INFLUXDB_WRITE_USER_PASSWORD: ${INFLUX_WRITE_PASSWORD:?falta INFLUX_WRITE_PASSWORD en .env}
       INFLUXDB_READ_USER: ${INFLUX_READ_USER}
-      INFLUXDB_READ_USER_PASSWORD: ${INFLUX_READ_PASSWORD}
+      INFLUXDB_READ_USER_PASSWORD: ${INFLUX_READ_PASSWORD:?falta INFLUX_READ_PASSWORD en .env}
     volumes:
       - influxdb-data:/var/lib/influxdb
       - ./influxdb/init:/docker-entrypoint-initdb.d
@@ -80,12 +80,12 @@ services:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
       MQTT_USER: ${MQTT_USER_HISTORIAN}
-      MQTT_PASS: ${MQTT_PASSWORD_HISTORIAN}
+      MQTT_PASS: ${MQTT_PASSWORD_HISTORIAN:?falta MQTT_PASSWORD_HISTORIAN en .env}
       INFLUX_HOST: influxdb
       INFLUX_PORT: "8086"
       INFLUX_DB: ${INFLUX_DB:-plant}
       INFLUX_USER: ${INFLUX_WRITE_USER}
-      INFLUX_PASSWORD: ${INFLUX_WRITE_PASSWORD}
+      INFLUX_PASSWORD: ${INFLUX_WRITE_PASSWORD:?falta INFLUX_WRITE_PASSWORD en .env}
     depends_on:
       mosquitto: {condition: service_healthy}
       influxdb: {condition: service_healthy}
@@ -99,7 +99,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?falta GRAFANA_PASSWORD en .env}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1s
       # Fijada: Infinity 4.x exige Grafana >= 11.6.11 (falla con react/jsx-runtime en 11.4)
@@ -108,10 +108,10 @@ services:
       # Credenciales de solo lectura para los datasources provisionados
       PG_DB: ${POSTGRES_DB}
       PG_USER: ${GRAFANA_DB_USER}
-      PG_PASSWORD: ${GRAFANA_DB_PASSWORD}
+      PG_PASSWORD: ${GRAFANA_DB_PASSWORD:?falta GRAFANA_DB_PASSWORD en .env}
       INFLUX_READ_USER: ${INFLUX_READ_USER}
-      INFLUX_READ_PASSWORD: ${INFLUX_READ_PASSWORD}
-      API_KEY_GRAFANA: ${API_KEY_GRAFANA}
+      INFLUX_READ_PASSWORD: ${INFLUX_READ_PASSWORD:?falta INFLUX_READ_PASSWORD en .env}
+      API_KEY_GRAFANA: ${API_KEY_GRAFANA:?falta API_KEY_GRAFANA en .env}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -136,7 +136,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d
@@ -159,16 +159,16 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
       MQTT_BROKER: tcp://mosquitto:1883
       MQTT_USER: ${MQTT_USER_API}
-      MQTT_PASS: ${MQTT_PASSWORD_API}
+      MQTT_PASS: ${MQTT_PASSWORD_API:?falta MQTT_PASSWORD_API en .env}
       INFLUX_URL: http://influxdb:8086
       INFLUX_USER: ${INFLUX_READ_USER}
-      INFLUX_PASSWORD: ${INFLUX_READ_PASSWORD}
-      API_KEY_GRAFANA: ${API_KEY_GRAFANA}
-      API_KEY_ALARM_ENGINE: ${API_KEY_ALARM_ENGINE}
-      API_KEY_OPERATOR: ${API_KEY_OPERATOR}
+      INFLUX_PASSWORD: ${INFLUX_READ_PASSWORD:?falta INFLUX_READ_PASSWORD en .env}
+      API_KEY_GRAFANA: ${API_KEY_GRAFANA:?falta API_KEY_GRAFANA en .env}
+      API_KEY_ALARM_ENGINE: ${API_KEY_ALARM_ENGINE:?falta API_KEY_ALARM_ENGINE en .env}
+      API_KEY_OPERATOR: ${API_KEY_OPERATOR:?falta API_KEY_OPERATOR en .env}
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70
     depends_on:
       postgres: {condition: service_healthy}
@@ -190,9 +190,9 @@ services:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
       MQTT_USER: ${MQTT_USER_ALARM}
-      MQTT_PASS: ${MQTT_PASSWORD_ALARM}
+      MQTT_PASS: ${MQTT_PASSWORD_ALARM:?falta MQTT_PASSWORD_ALARM en .env}
       API_URL: http://plant-api:8080
-      API_KEY: ${API_KEY_ALARM_ENGINE}
+      API_KEY: ${API_KEY_ALARM_ENGINE:?falta API_KEY_ALARM_ENGINE en .env}
       API_POLL_INTERVAL_S: "30"
       STATE_FILE: /app/data/alarm_state.json
     volumes:
@@ -211,7 +211,7 @@ services:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
       MQTT_USER: ${MQTT_USER_GATEWAY}
-      MQTT_PASS: ${MQTT_PASSWORD_GATEWAY}
+      MQTT_PASS: ${MQTT_PASSWORD_GATEWAY:?falta MQTT_PASSWORD_GATEWAY en .env}
       PLC_HOST: ${PLC_HOST}
       PLC_PORT: ${PLC_PORT:-502}
       PLC_UNIT_ID: ${PLC_UNIT_ID:-1}
@@ -230,11 +230,11 @@ services:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
       MQTT_USER: ${MQTT_USER_OPCUA}
-      MQTT_PASS: ${MQTT_PASSWORD_OPCUA}
+      MQTT_PASS: ${MQTT_PASSWORD_OPCUA:?falta MQTT_PASSWORD_OPCUA en .env}
       OPC_ENDPOINT: 0.0.0.0
       OPC_PORT: "4840"
       OPC_USER: ${OPC_USER}
-      OPC_PASSWORD: ${OPC_PASSWORD}
+      OPC_PASSWORD: ${OPC_PASSWORD:?falta OPC_PASSWORD en .env}
     volumes:
       - opcua-pki:/app/pki          # certificado del servidor persistente (los clientes lo confian una vez)
     depends_on:
@@ -250,7 +250,7 @@ services:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
       MQTT_USER: ${MQTT_USER_TWIN}
-      MQTT_PASS: ${MQTT_PASSWORD_TWIN}
+      MQTT_PASS: ${MQTT_PASSWORD_TWIN:?falta MQTT_PASSWORD_TWIN en .env}
       UMBRAL_L: "20"
       TWIN_GAIN: "0.005"
       FLOW_DIVISOR: "10"            # caudales del contrato en l/min x10

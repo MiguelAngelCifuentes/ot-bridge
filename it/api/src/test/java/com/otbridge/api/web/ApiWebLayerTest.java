@@ -13,6 +13,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.net.URI;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +40,17 @@ class ApiWebLayerTest {
     void missingOrWrongKeyIs401() throws Exception {
         mvc.perform(get("/api/alarms")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/alarms").header("X-API-Key", "nope")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void nonCanonicalPathsCannotSkipTheFilter() throws Exception {
+        // Spring enruta sobre la ruta decodificada y sin ;parametros: estas variantes llegan al controlador
+        for (String path : List.of("/api;x=1/alarms", "/%61pi/alarms", "/api/alarms;x=1")) {
+            mvc.perform(get(URI.create(path))).andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post(URI.create("/api;x=1/alarms/1/acknowledge"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"ackBy\":\"x\"}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

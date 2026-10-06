@@ -15,6 +15,7 @@ class Config:
     opc_user: str
     opc_password: str
     pki_dir: str
+    allow_insecure: bool
 
 
 def load_config() -> Config:
@@ -28,4 +29,5 @@ def load_config() -> Config:
         opc_user=os.getenv("OPC_USER", "otbridge"),
         opc_password=os.getenv("OPC_PASSWORD", ""),
         pki_dir=os.getenv("OPC_PKI_DIR", "/app/pki"),
+        allow_insecure=os.getenv("OPC_ALLOW_INSECURE", "") == "1",
     )

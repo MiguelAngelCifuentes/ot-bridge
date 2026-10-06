@@ -31,11 +31,11 @@ implementados, el modelo de amenazas, los riesgos aceptados y el roadmap.
 | | `passwd` regenerado y validado por script desde `.env`, recarga en caliente | `it/scripts/mqtt_passwd.py` |
 | **Datos** | InfluxDB con autenticación: `admin`, escritura (historian) y lectura (Grafana, API, backup) | `it/scripts/influx_users.py` |
 | | PostgreSQL: rol `grafana_ro` con `SELECT` y nada más | `it/scripts/postgres_roles.py` |
-| **API** | API key por cliente; perfil `prod` sin Swagger; DTOs, validación y errores 4xx controlados; CORS restrictivo | `it/api/` |
-| **OPC UA** | `Basic256Sha256` Sign & Encrypt + usuario; sin acceso anónimo | `it/opcua-server/` |
+| **API** | API key por cliente, filtro que deniega por defecto (solo `/actuator/health` sin clave); perfil `prod` sin Swagger; DTOs, validación y errores 4xx controlados; CORS restrictivo | `it/api/` |
+| **OPC UA** | `Basic256Sha256` Sign & Encrypt + usuario; sin acceso anónimo; no arranca sin `OPC_PASSWORD` (salvo `OPC_ALLOW_INSECURE=1` en pruebas) | `it/opcua-server/` |
 | **Contenedores** | No-root, `no-new-privileges`, `cap_drop: ALL` (+ `cap_add` mínimo), healthchecks, límites de memoria, rotación de logs | `it/docker-compose.yml` |
 | **Suministro** | Imágenes fijadas por versión o digest; dependencias Python con `==` y Maven con versión | compose, `requirements.txt`, `pom.xml` |
-| **Secretos** | `.env` gitignored; `ensure_secrets.py` genera valores aleatorios y sustituye los marcadores de la plantilla sin imprimirlos | `it/scripts/ensure_secrets.py` |
+| **Secretos** | `.env` gitignored; Compose no arranca si falta un secreto (`${VAR:?}`), en vez de usar un valor vacío; `ensure_secrets.py` genera valores aleatorios y sustituye los marcadores de la plantilla sin imprimirlos | `it/scripts/ensure_secrets.py` |
 | **Backups** | Sin secretos (`.env` y `passwd` excluidos), con `manifest.sha256` y prueba de restauración aislada | `it/scripts/backup.ps1`, `restore_test.ps1` |
 | **Repositorio** | gitleaks en pre-commit y en CI, Trivy sobre configuración e imágenes, Dependabot | `.pre-commit-config.yaml`, `.github/` |
 
@@ -60,6 +60,7 @@ Hallazgos reales durante el desarrollo, corregidos y convertidos en controles:
 - **El testamento MQTT (LWT) de una caída brusca llega con `ts = 0`** y envenenaba el búfer del historian. Ahora se descarta como punto y se trata como pérdida de comunicación.
 - **El proyecto exportable de un SCADA no debe contener credenciales.** La primera versión guardaba la contraseña MQTT dentro del proyecto de FUXA, servido por su API. Se movió al almacén de seguridad y se rotó.
 - **Un PLC que arranca solo es un riesgo de proceso.** El runtime pasaba a RUN al reiniciar el contenedor con el último programa: ahora arranca vacío.
+- **Un filtro de autenticación por prefijo de URL se puede esquivar.** `ApiKeyFilter` comparaba el URI crudo con `/api/`, pero Spring MVC enruta sobre la ruta decodificada y sin parámetros de matriz: `/api;x=1/...` o `/%61pi/...` llegaban a los controladores sin clave, también en escritura. Ahora el filtro deniega por defecto y hay tests de regresión.
 - **Usuarios compartidos rompen el mínimo privilegio.** OPC UA y el gemelo digital compartían usuario MQTT, lo que permitía al servidor OPC UA publicar alarmas: ahora cada servicio tiene el suyo.
 
 ## 5. Roadmap de seguridad
