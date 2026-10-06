@@ -1,0 +1,50 @@
+broker:
+  host: 127.0.0.1
+  port: 1883
+  qos: 1
+  client_id: gateway-plc01
+  topic_prefix: factory
+
+plcs:
+  - name: plc01
+    host: openplc-runtime        # por defecto; en compose manda PLC_HOST (.env)
+    port: 502
+    unit_id: 1
+    poll_interval_ms: 1000
+    registers:
+      - address: 1124
+        name: nivel_x10
+        unit: L_x10
+      - address: 1125
+        name: nivel_ma
+        unit: mA_x100
+      - address: 1126
+        name: caudal_ent
+        unit: lpm_x10       # hmi_caudal_ent = l/min * 10 (programa PLC)
+      - address: 1127
+        name: caudal_sal
+        unit: lpm_x10
+      - address: 1128
+        name: velocidad
+        unit: "%"
+      - address: 1129
+        name: estado
+        unit: bitmask
+      - address: 1130
+        name: modo_manual
+        unit: ""
+      - address: 1131
+        name: mando_marcha
+        unit: ""
+      - address: 1132
+        name: mando_valvula
+        unit: ""
+      - address: 1133
+        name: reset_fallos
+        unit: ""
+      - address: 1134
+        name: consigna_manual
+        unit: "%"
+      - address: 1135
+        name: seta_scada
+        unit: ""
