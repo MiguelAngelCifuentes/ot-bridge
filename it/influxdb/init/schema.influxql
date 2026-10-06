@@ -1,0 +1,11 @@
+-- Esquema del historian (InfluxDB 1.8). Una sentencia por linea; se ignoran las lineas "--".
+-- Lo aplican influxdb/init/init.sh (volumen nuevo) y scripts/influx_schema.py (instalacion existente).
+--
+-- rp_30d (por defecto): datos crudos a 1 Hz durante 30 dias.
+-- rp_1y: agregados de 1 minuto (media/min/max) durante 1 anio, calculados por continuous queries.
+--        Las vistas de mas de 24 h de Grafana leen de aqui (millones de puntos menos por consulta).
+CREATE RETENTION POLICY rp_30d ON plant DURATION 30d REPLICATION 1 DEFAULT
+CREATE RETENTION POLICY rp_1y ON plant DURATION 365d REPLICATION 1
+CREATE CONTINUOUS QUERY cq_sensor_1m ON plant BEGIN SELECT mean("value") AS "mean", min("value") AS "min", max("value") AS "max" INTO "plant"."rp_1y"."sensor_readings_1m" FROM "plant"."rp_30d"."sensor_readings" GROUP BY time(1m), * END
+CREATE CONTINUOUS QUERY cq_status_1m ON plant BEGIN SELECT mean("online") AS "online" INTO "plant"."rp_1y"."plc_status_1m" FROM "plant"."rp_30d"."plc_status" GROUP BY time(1m), * END
+CREATE CONTINUOUS QUERY cq_twin_1m ON plant BEGIN SELECT mean("level_real") AS "level_real", mean("level_model") AS "level_model", mean("deviation") AS "deviation", mean("leak_lpm") AS "leak_lpm" INTO "plant"."rp_1y"."twin_state_1m" FROM "plant"."rp_30d"."twin_state" GROUP BY time(1m), * END
