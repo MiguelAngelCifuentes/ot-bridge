@@ -1,3 +1,5 @@
+# Solo parches y versiones menores: las actualizaciones mayores (Spring Boot, Java, Python, paho-mqtt…)
+# rompen compatibilidad y se hacen a mano, probadas contra el stack completo.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -18,12 +20,19 @@ updates:
     groups:
       python:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: maven
     directory: /it/api
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
+  # Imagenes base: solo parches de seguridad de la misma version (p. ej. python 3.11.x, Java 21)
   - package-ecosystem: docker
     directories:
       - /it/gateway
@@ -34,3 +43,7 @@ updates:
       - /it/api
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "maven"
