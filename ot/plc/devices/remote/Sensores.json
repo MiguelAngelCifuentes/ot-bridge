@@ -2,7 +2,7 @@
   "name": "Sensores",
   "protocol": "modbus-tcp",
   "modbusTcpConfig": {
-    "host": "host.docker.internal",
+    "host": "field-simulator",
     "port": 5020,
     "timeout": 1000,
     "slaveId": 1,

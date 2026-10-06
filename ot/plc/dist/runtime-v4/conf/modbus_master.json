@@ -1,0 +1,102 @@
+[
+  {
+    "name": "Actuadores",
+    "protocol": "MODBUS",
+    "config": {
+      "type": "SLAVE",
+      "transport": "tcp",
+      "host": "field-simulator",
+      "port": 5021,
+      "timeout_ms": 1000,
+      "slave_id": 1,
+      "io_points": [
+        {
+          "fc": 6,
+          "offset": "0x0000",
+          "iec_location": "%QW0",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        },
+        {
+          "fc": 6,
+          "offset": "0x0001",
+          "iec_location": "%QW1",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        },
+        {
+          "fc": 6,
+          "offset": "0x0002",
+          "iec_location": "%QW2",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Sensores",
+    "protocol": "MODBUS",
+    "config": {
+      "type": "SLAVE",
+      "transport": "tcp",
+      "host": "field-simulator",
+      "port": 5020,
+      "timeout_ms": 1000,
+      "slave_id": 1,
+      "io_points": [
+        {
+          "fc": 4,
+          "offset": "0x0000",
+          "iec_location": "%IW0",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        },
+        {
+          "fc": 4,
+          "offset": "0x0001",
+          "iec_location": "%IW1",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        },
+        {
+          "fc": 4,
+          "offset": "0x0002",
+          "iec_location": "%IW2",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        },
+        {
+          "fc": 4,
+          "offset": "0x0003",
+          "iec_location": "%IW3",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        },
+        {
+          "fc": 4,
+          "offset": "0x0004",
+          "iec_location": "%IW4",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        },
+        {
+          "fc": 4,
+          "offset": "0x0005",
+          "iec_location": "%IW5",
+          "len": 1,
+          "cycle_time_ms": 100,
+          "error_handling": "keep-last-value"
+        }
+      ]
+    }
+  }
+]
