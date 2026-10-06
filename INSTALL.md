@@ -157,7 +157,8 @@ Pruebas y diagnóstico avanzado: [docs/runbook.md](docs/runbook.md) y [docs/vali
 
 ## 6. Trabajar con el PLC desde OpenPLC Editor
 
-No hace falta para usar la plataforma, pero sí para **modificar la lógica del PLC**.
+No hace falta para usar la plataforma, pero sí para **modificar la lógica del PLC**. La guía completa del PLC (programa,
+mapa de E/S, conexiones y configuración desde cero) está en **[docs/plc.md](docs/plc.md)**.
 
 1. Instala [OpenPLC Editor v4](https://autonomylogic.com/).
 2. Abre la carpeta `ot/plc`. El programa está en `pous/programs/main.st`.

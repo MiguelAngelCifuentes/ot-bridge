@@ -240,6 +240,7 @@ ot-bridge/
 | Documento | Contenido |
 |---|---|
 | [architecture.md](docs/architecture.md) | Proceso, niveles Purdue, recorrido de un dato, zonas y conductos |
+| [plc.md](docs/plc.md) | PLC OpenPLC: programa bloque a bloque, mapa de E/S, conexión con simulador y SCADA, configuración a mano |
 | [security.md](docs/security.md) | Modelo de amenazas, controles, riesgos aceptados, lecciones aprendidas |
 | [network.md](docs/network.md) | Puertos, publicación y firewall |
 | [deployment.md](docs/deployment.md) | Un solo host o OT/IT separados |

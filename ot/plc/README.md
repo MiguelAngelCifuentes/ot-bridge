@@ -1,5 +1,7 @@
 # PLC · OpenPLC v4 (IEC 61131-3)
 
+> Guía completa (funcionamiento, mapa de E/S, configuración a mano en OpenPLC Editor): **[docs/plc.md](../../docs/plc.md)**
+
 | Ruta | Contenido |
 |---|---|
 | `pous/programs/main.st` | **Programa fuente** en Structured Text: acondicionamiento 4-20 mA, diagnóstico NAMUR, histéresis, reserva, manual/automático, seguridades y vigilancia del contactor |
