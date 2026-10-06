@@ -1,0 +1,36 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: pip
+    directories:
+      - /it/gateway
+      - /it/historian
+      - /it/alarm-engine
+      - /it/digital-twin
+      - /it/opcua-server
+      - /ot/field
+    schedule:
+      interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: maven
+    directory: /it/api
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: docker
+    directories:
+      - /it/gateway
+      - /it/historian
+      - /it/alarm-engine
+      - /it/digital-twin
+      - /it/opcua-server
+      - /it/api
+    schedule:
+      interval: monthly
