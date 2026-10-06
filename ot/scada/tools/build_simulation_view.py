@@ -23,7 +23,8 @@ from pathlib import Path
 
 BACKUP_DIR = Path(__file__).resolve().parent / "backups"
 
-SIMULATOR_ADDRESS = "host.docker.internal:5022"
+# Estacion de instructor del simulador de planta (servicio field-simulator de la red OT)
+SIMULATOR_ADDRESS = os.environ.get("OTB_SIMULATOR_ADDRESS", "field-simulator:5022")
 DEVICE_ID = "d_sim_campo"
 DEVICE_NAME = "SIM_Campo"
 SERVER_DEVICE_ID = "0"
