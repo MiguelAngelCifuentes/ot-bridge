@@ -265,14 +265,23 @@ def verify(log: Log) -> None:
         log.ok("SCADA con datos en vivo del PLC y del simulador")
     else:
         log.warn("El SCADA no recibe datos: " + (scada.stderr.strip().splitlines() or ["sin detalle"])[-1])
-    proc = run([sys.executable, str(IT / "scripts" / "smoke_test.py"), "--quick"], log, cwd=IT, check=False,
-               timeout=300)
-    result = next((l for l in proc.stdout.splitlines() if l.startswith("RESULTADO")), "")
+    # El gateway reintenta con espera creciente mientras el PLC compila: los primeros datos pueden tardar ~1 min
+    for attempt in range(1, 7):
+        proc = run([sys.executable, str(IT / "scripts" / "smoke_test.py"), "--quick"], log, cwd=IT, check=False,
+                   timeout=300)
+        if proc.returncode == 0:
+            break
+        if attempt < 6:
+            log.info("los datos aun no han recorrido toda la cadena; reintentando en 15 s...")
+            time.sleep(15)
+    result = next((row for row in proc.stdout.splitlines() if row.startswith("RESULTADO")), "")
     if proc.returncode == 0:
         log.ok(result or "Prueba de humo superada")
     else:
-        fails = [l.strip() for l in proc.stdout.splitlines() if "[ERR" in l or "FALLO" in l.upper()]
-        log.warn(f"{result or 'La prueba de humo tiene fallos'}: " + "; ".join(fails[:4]))
+        log.warn((result.split("  FALLOS")[0] if result else "La prueba de humo tiene fallos") +
+                 f" (detalle: python it/scripts/smoke_test.py; registro: {log.path.relative_to(ROOT)})")
+        for line in [row.strip() for row in proc.stdout.splitlines() if "[ERR" in row][:5]:
+            log.info(line)
 
 
 def summary(log: Log) -> None:
