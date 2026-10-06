@@ -1,0 +1,35 @@
+# Sandbox FUXA para desarrollar y probar el SCADA sin tocar la planta ni el PLC real.
+# FUXA en la misma version que la planta (verificada por el hash del bundle main.*.js: b64ff8912033d095)
+# y un simulador del PLC que porta ot/plc/pous/programs/main.st.
+name: fuxa-sandbox
+
+services:
+  fuxa:
+    image: frangoteam/fuxa:1.3.4
+    container_name: fuxa-sandbox
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1882:1881"
+    volumes:
+      - fuxa-appdata:/usr/src/app/FUXA/server/_appdata
+      - fuxa-db:/usr/src/app/FUXA/server/_db
+      # plugins instalados (modbus-serial) para que sobrevivan a la recreacion del contenedor
+      - fuxa-pkg:/usr/src/app/FUXA/server/_pkg
+    depends_on:
+      - plc-sim
+
+  plc-sim:
+    image: python:3.12-slim
+    container_name: fuxa-plc-sim
+    restart: unless-stopped
+    command: sh -c "pip install -q 'pymodbus==3.15.0' && python /sim/plc_sim.py --host 0.0.0.0 --port 5502 --level 320"
+    ports:
+      # Publicado solo en local: las pruebas inyectan fallos por Modbus desde el host de pruebas
+      - "127.0.0.1:5502:5502"
+    volumes:
+      - ./plc_sim.py:/sim/plc_sim.py:ro
+
+volumes:
+  fuxa-pkg:
+  fuxa-appdata:
+  fuxa-db:
