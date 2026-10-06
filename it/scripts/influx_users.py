@@ -32,7 +32,7 @@ def failed(r: subprocess.CompletedProcess) -> bool:
 
 
 def influx(statement: str, auth: tuple[str, str] | None) -> subprocess.CompletedProcess:
-    cmd = ["docker", "exec", "influxdb", "influx"]
+    cmd = ["docker", "exec", "otb-influxdb", "influx"]
     if auth:
         cmd += ["-username", auth[0], "-password", auth[1]]
     return subprocess.run(cmd + ["-execute", statement], capture_output=True, text=True)

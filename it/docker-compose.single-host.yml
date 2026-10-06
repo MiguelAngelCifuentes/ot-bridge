@@ -1,8 +1,7 @@
 # Despliegue en un solo host: stack IT en la misma maquina que la capa OT (OpenPLC + FUXA + simulador).
 # Se superpone a docker-compose.yml sin modificarlo:
 #   docker compose -f docker-compose.yml -f docker-compose.single-host.yml up -d
-# Lo lanza scripts/up-single-host.ps1. Requiere la red Docker de OT (fuxa_default), que crea
-# ot/scada/docker-compose.yml.
+# Lo lanza otb.py. Requiere la red Docker de la zona OT (otb-ot), que crea ot/scada/docker-compose.yml.
 services:
   mosquitto:
     ports: !override
@@ -24,5 +23,5 @@ services:
 
 networks:
   ot-net:
-    name: fuxa_default
+    name: otb-ot
     external: true

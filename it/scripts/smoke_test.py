@@ -9,7 +9,7 @@ Comprueba:
      en la API y lo desactiva (el motor resuelve las alarmas de reglas retiradas). Reutiliza siempre el mismo
      umbral. Tarda ~1 min; se omite con --quick. La alarma se ve tambien en el SCADA (severidad warning).
 
-Uso:  .\\venv\\Scripts\\python.exe scripts\\smoke_test.py [--quick]
+Uso:  python it/scripts/smoke_test.py [--quick]
 """
 from __future__ import annotations
 

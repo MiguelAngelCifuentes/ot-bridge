@@ -35,6 +35,8 @@ REQUIRED = [
     ("MQTT_USER_TWIN", "twin"), ("MQTT_PASSWORD_TWIN", None),
     # OPC UA con usuario (sin acceso anonimo)
     ("OPC_USER", "otbridge"), ("OPC_PASSWORD", None),
+    # Cuenta de administrador del runtime de OpenPLC (la crea ot/plc/deploy_plc.py en el primer despliegue)
+    ("OPENPLC_USER", "otb-admin"), ("OPENPLC_PASSWORD", None),
     # Interfaz en la que se publica MQTT para el SCADA (dos hosts: IP LAN del host IT)
     ("MQTT_LAN_BIND", "127.0.0.1"),
 ]

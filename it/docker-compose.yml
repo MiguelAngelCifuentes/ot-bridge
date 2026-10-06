@@ -1,4 +1,5 @@
 # OT-Bridge · capa IT (10 servicios). Secretos en .env (plantilla: .env.example; faltantes: scripts/ensure_secrets.py).
+name: otb-it
 
 # Bloques comunes
 x-logging: &logging              # rotacion: sin esto los logs de Docker crecen sin limite
@@ -28,7 +29,7 @@ services:
   mosquitto:
     <<: *hardening
     image: eclipse-mosquitto:2.1.2-alpine
-    container_name: mosquitto
+    container_name: otb-mosquitto
     ports:
       - "127.0.0.1:1883:1883"
       - "${MQTT_LAN_BIND:?definir MQTT_LAN_BIND en .env}:1883:1883"   # SCADA FUXA del host OT (firewall: solo ese origen)
@@ -46,7 +47,7 @@ services:
   influxdb:
     <<: *hardening
     image: influxdb:1.8.10
-    container_name: influxdb
+    container_name: otb-influxdb
     ports:
       - "127.0.0.1:8086:8086"
     environment:
@@ -75,7 +76,7 @@ services:
   historian:
     <<: *hardening
     build: ./historian
-    container_name: historian
+    container_name: otb-historian
     environment:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
@@ -95,7 +96,7 @@ services:
   grafana:
     <<: *hardening
     image: grafana/grafana:11.4.0
-    container_name: grafana
+    container_name: otb-grafana
     ports:
       - "127.0.0.1:3000:3000"
     environment:
@@ -130,7 +131,7 @@ services:
   postgres:
     <<: *hardening
     image: postgres:16.13
-    container_name: postgres
+    container_name: otb-postgres
     ports:
       - "127.0.0.1:5432:5432"
     environment:
@@ -152,7 +153,7 @@ services:
   plant-api:
     <<: *hardening
     build: ./api
-    container_name: plant-api
+    container_name: otb-plant-api
     ports:
       - "127.0.0.1:8080:8080"
     environment:
@@ -185,7 +186,7 @@ services:
   alarm-engine:
     <<: *hardening
     build: ./alarm-engine
-    container_name: alarm-engine
+    container_name: otb-alarm-engine
     environment:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
@@ -206,7 +207,7 @@ services:
   gateway:
     <<: *hardening
     build: ./gateway
-    container_name: gateway
+    container_name: otb-gateway
     environment:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
@@ -223,7 +224,7 @@ services:
   opcua-server:
     <<: *hardening
     build: ./opcua-server
-    container_name: opcua-server
+    container_name: otb-opcua-server
     ports:
       - "127.0.0.1:4840:4840"
     environment:
@@ -245,7 +246,7 @@ services:
   digital-twin:
     <<: *hardening
     build: ./digital-twin
-    container_name: digital-twin
+    container_name: otb-digital-twin
     environment:
       MQTT_BROKER: mosquitto
       MQTT_PORT: "1883"
@@ -261,7 +262,7 @@ services:
 
 networks:
   plant-net:
-    name: plant-net
+    name: otb-it
 
 volumes:
   mosquitto-data:

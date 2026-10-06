@@ -43,7 +43,7 @@ function Invoke-Native {
 }
 
 function Get-InfluxScalar([string]$Query) {
-    $args_ = @("exec", "influxdb", "influx", "-username", $e['INFLUX_READ_USER'], "-password", $e['INFLUX_READ_PASSWORD'],
+    $args_ = @("exec", "otb-influxdb", "influx", "-username", $e['INFLUX_READ_USER'], "-password", $e['INFLUX_READ_PASSWORD'],
                "-database", "plant", "-format", "csv", "-execute", $Query)
     $lines = Invoke-Native "Consulta InfluxDB" "docker" $args_
     $row = $lines | Where-Object { $_ -match '^[^,]+,\d' } | Select-Object -First 1
@@ -52,7 +52,7 @@ function Get-InfluxScalar([string]$Query) {
 }
 
 function Get-PgScalar([string]$Query) {
-    $v = Invoke-Native "Consulta PostgreSQL" "docker" @("exec", "postgres", "psql", "-U", $e['POSTGRES_USER'],
+    $v = Invoke-Native "Consulta PostgreSQL" "docker" @("exec", "otb-postgres", "psql", "-U", $e['POSTGRES_USER'],
                                                          "-d", $e['POSTGRES_DB'], "-tAc", $Query)
     return [int64](($v | Select-Object -First 1).Trim())
 }
@@ -86,23 +86,23 @@ try {
     [IO.File]::WriteAllText((Join-Path $dir "reference.json"), ($reference | ConvertTo-Json -Depth 4), $utf8)
 
     Write-Host "==> PostgreSQL (pg_dump --clean --if-exists)"
-    Invoke-Native "pg_dump" "docker" @("exec", "postgres", "pg_dump", "-U", $e['POSTGRES_USER'], "-d", $e['POSTGRES_DB'],
+    Invoke-Native "pg_dump" "docker" @("exec", "otb-postgres", "pg_dump", "-U", $e['POSTGRES_USER'], "-d", $e['POSTGRES_DB'],
                                      "--clean", "--if-exists", "-f", "/tmp/otb_dump.sql") | Out-Null
-    Invoke-Native "Copia del dump" "docker" @("cp", "postgres:/tmp/otb_dump.sql", "$dir\postgres_plant.sql") | Out-Null
-    Invoke-Native "Limpieza" "docker" @("exec", "postgres", "rm", "-f", "/tmp/otb_dump.sql") | Out-Null
+    Invoke-Native "Copia del dump" "docker" @("cp", "otb-postgres:/tmp/otb_dump.sql", "$dir\postgres_plant.sql") | Out-Null
+    Invoke-Native "Limpieza" "docker" @("exec", "otb-postgres", "rm", "-f", "/tmp/otb_dump.sql") | Out-Null
     if ((Get-Item "$dir\postgres_plant.sql").Length -lt 1024) { throw "Dump de PostgreSQL sospechosamente pequeno" }
 
     Write-Host "==> InfluxDB (backup portable de la BD plant)"
-    Invoke-Native "Limpieza" "docker" @("exec", "influxdb", "rm", "-rf", "/tmp/otb_influx") | Out-Null
-    Invoke-Native "influxd backup" "docker" @("exec", "influxdb", "influxd", "backup", "-portable", "-db", "plant",
+    Invoke-Native "Limpieza" "docker" @("exec", "otb-influxdb", "rm", "-rf", "/tmp/otb_influx") | Out-Null
+    Invoke-Native "influxd backup" "docker" @("exec", "otb-influxdb", "influxd", "backup", "-portable", "-db", "plant",
                                             "-host", "127.0.0.1:8088", "/tmp/otb_influx") | Out-Null
-    Invoke-Native "Copia del backup Influx" "docker" @("cp", "influxdb:/tmp/otb_influx", "$dir\influx") | Out-Null
-    Invoke-Native "Limpieza" "docker" @("exec", "influxdb", "rm", "-rf", "/tmp/otb_influx") | Out-Null
+    Invoke-Native "Copia del backup Influx" "docker" @("cp", "otb-influxdb:/tmp/otb_influx", "$dir\influx") | Out-Null
+    Invoke-Native "Limpieza" "docker" @("exec", "otb-influxdb", "rm", "-rf", "/tmp/otb_influx") | Out-Null
     if (-not (Get-ChildItem "$dir\influx" -Filter *.manifest)) { throw "Backup de InfluxDB sin manifiesto" }
 
     Write-Host "==> Grafana y alarm-engine"
-    Invoke-Native "Copia de grafana.db" "docker" @("cp", "grafana:/var/lib/grafana/grafana.db", "$dir\grafana.db") | Out-Null
-    Invoke-Native "Copia del estado del alarm-engine" "docker" @("cp", "alarm-engine:/app/data/alarm_state.json",
+    Invoke-Native "Copia de grafana.db" "docker" @("cp", "otb-grafana:/var/lib/grafana/grafana.db", "$dir\grafana.db") | Out-Null
+    Invoke-Native "Copia del estado del alarm-engine" "docker" @("cp", "otb-alarm-engine:/app/data/alarm_state.json",
                                                                "$dir\alarm_state.json") | Out-Null
 
     Write-Host "==> Mosquitto (sin passwd)"

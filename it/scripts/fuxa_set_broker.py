@@ -5,7 +5,7 @@ Idempotente: si la direccion ya es la pedida, no escribe nada. Las credenciales 
 MQTT_PASSWORD_FUXA de .env) se reaplican al almacen de seguridad de FUXA, nunca dentro del proyecto.
 
 Uso:  python scripts/fuxa_set_broker.py --fuxa http://localhost:1881 --broker mqtt://mosquitto:1883
-      (un solo host: FUXA y mosquitto comparten la red Docker fuxa_default)
+      (un solo host: FUXA y mosquitto comparten la red Docker otb-ot)
 """
 from __future__ import annotations
 

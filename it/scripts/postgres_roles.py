@@ -42,7 +42,7 @@ GRANT CONNECT ON DATABASE "{db}" TO "{role}";
 GRANT USAGE ON SCHEMA public TO "{role}";
 GRANT SELECT ON {", ".join(TABLES)} TO "{role}";
 """
-    r = subprocess.run(["docker", "exec", "-i", "postgres", "psql", "-v", "ON_ERROR_STOP=1", "-q",
+    r = subprocess.run(["docker", "exec", "-i", "otb-postgres", "psql", "-v", "ON_ERROR_STOP=1", "-q",
                         "-U", owner, "-d", db], input=sql, capture_output=True, text=True)
     if r.returncode != 0:
         raise SystemExit(f"Fallo al configurar el rol: {r.stderr.strip()[:300]}")

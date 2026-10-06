@@ -34,7 +34,7 @@ def env() -> dict[str, str]:
 
 
 def run(statement: str, e: dict[str, str]) -> tuple[bool, str]:
-    r = subprocess.run(["docker", "exec", "influxdb", "influx", "-username", e["INFLUX_ADMIN_USER"],
+    r = subprocess.run(["docker", "exec", "otb-influxdb", "influx", "-username", e["INFLUX_ADMIN_USER"],
                         "-password", e["INFLUX_ADMIN_PASSWORD"], "-database", "plant", "-execute", statement],
                        capture_output=True, text=True)
     text = (r.stdout + r.stderr).strip()

@@ -9,6 +9,7 @@ Uso:  python scripts/mqtt_passwd.py            (rotar una contrasena = cambiarla
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -19,6 +20,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PASSWD = ROOT / "mosquitto" / "config" / "passwd"
 IMAGE = "eclipse-mosquitto:2.1.2-alpine"
+# En Linux/macOS el contenedor escribe con el UID del usuario: si no, el fichero quedaria de root (0700)
+HOST_USER = ["--user", f"{os.getuid()}:{os.getgid()}"] if hasattr(os, "getuid") else []
 
 
 def env_users() -> dict[str, str]:
@@ -44,7 +47,7 @@ def main() -> int:
         tmpdir = Path(tmp)
         (tmpdir / "passwd").touch()
         for user, password in users.items():
-            r = subprocess.run(["docker", "run", "--rm", "-v", f"{tmpdir}:/work", IMAGE,
+            r = subprocess.run(["docker", "run", "--rm", *HOST_USER, "-v", f"{tmpdir}:/work", IMAGE,
                                 "mosquitto_passwd", "-b", "/work/passwd", user, password],
                                capture_output=True, text=True)
             if r.returncode != 0:
@@ -60,9 +63,9 @@ def main() -> int:
         tmp_final = PASSWD.with_suffix(".new")
         tmp_final.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         tmp_final.replace(PASSWD)
-    r = subprocess.run(["docker", "kill", "-s", "SIGHUP", "mosquitto"], capture_output=True, text=True)
-    print(f"passwd regenerado: {len(users)} usuarios ({', '.join(sorted(users))}); "
-          f"copia anterior en {backup.name}; recarga del broker: {'OK' if r.returncode == 0 else r.stderr.strip()}")
+    r = subprocess.run(["docker", "kill", "-s", "SIGHUP", "otb-mosquitto"], capture_output=True, text=True)
+    reload = "OK" if r.returncode == 0 else "broker no arrancado (lo leera al arrancar)"
+    print(f"passwd regenerado: {len(users)} usuarios ({', '.join(sorted(users))}); recarga del broker: {reload}")
     return 0
 
 
