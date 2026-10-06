@@ -29,7 +29,7 @@ BANNER = """OT-Bridge field simulator
   q quit
 """
 
-# Headless mode (no console, e.g. launched hidden by it/scripts/up-single-host.ps1): faults are injected only
+# Headless mode (no console, e.g. inside the field-simulator container): faults are injected only
 # through :5022 (FUXA "Simulador" tab) and the status line is logged every HEADLESS_STATUS_EVERY_S.
 HEADLESS_STATUS_EVERY_S = 10.0
 

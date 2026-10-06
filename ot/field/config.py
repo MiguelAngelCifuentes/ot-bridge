@@ -1,4 +1,8 @@
-BIND_HOST = "0.0.0.0"
+import os
+
+# Interfaz de escucha. Por defecto solo local: Modbus no tiene autenticacion y estos puertos mueven actuadores.
+# En contenedor se usa 0.0.0.0 (solo es alcanzable dentro de la red Docker de la capa OT).
+BIND_HOST = os.environ.get("OTB_FIELD_BIND", "127.0.0.1")
 SENSORS_PORT = 5020
 ACTUATORS_PORT = 5021
 SIMULATION_PORT = 5022
