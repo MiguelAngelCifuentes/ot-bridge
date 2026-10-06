@@ -1,0 +1,32 @@
+user gateway
+topic write factory/+/telemetry/#
+topic write factory/+/status
+
+user historian
+topic read factory/+/telemetry/#
+topic read factory/+/status
+topic read factory/+/twin/#
+
+user alarm-engine
+topic read factory/+/telemetry/#
+topic read factory/+/status
+topic write factory/alarms/events
+
+user plant-api
+topic read factory/+/telemetry/#
+topic read factory/+/status
+topic read factory/alarms/events
+
+user fuxa
+topic read factory/#
+
+# Servidor OPC UA: solo lectura de telemetria y estado
+user opcua
+topic read factory/+/telemetry/#
+topic read factory/+/status
+
+# Gemelo digital: lee telemetria, publica sus alarmas y su estado
+user twin
+topic read factory/+/telemetry/#
+topic write factory/alarms/events
+topic write factory/+/twin/#
