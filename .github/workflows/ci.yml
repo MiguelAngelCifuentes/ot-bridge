@@ -22,8 +22,8 @@ jobs:
       matrix:
         service: [gateway, historian, alarm-engine, digital-twin]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -37,8 +37,8 @@ jobs:
     name: Tests · plant-api (Java 21)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
@@ -50,8 +50,8 @@ jobs:
     name: Build y validación del SCADA
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - run: python ot/scada/hmi/generator/build.py --target plant
@@ -61,8 +61,8 @@ jobs:
     name: Lint (ruff)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - run: pip install ruff
@@ -72,7 +72,7 @@ jobs:
     name: Validación de Docker Compose
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Capa OT
         run: docker compose -f ot/scada/docker-compose.yml --profile two-host config -q
       - name: Capa IT (dos hosts y un solo host)
@@ -86,7 +86,7 @@ jobs:
     name: Escaneo de secretos (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: gitleaks sobre todo el historial
@@ -96,8 +96,8 @@ jobs:
     name: Análisis de configuración (Trivy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: actions/checkout@v7
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: .
