@@ -44,7 +44,7 @@ flowchart BT
 
 | Nivel | Componente | Carpeta | Tecnología |
 |---|---|---|---|
-| L0 | Simulador físico: balsa, bomba con rampa, contactor, válvula, desbordamiento, 5 fallos inyectables | `ot/field/` | Python 3, pymodbus |
+| L0 | Simulador físico: balsa, bomba con rampa, contactor, válvula, desbordamiento, 5 fallos inyectables | `ot/field/` | Python 3, pymodbus, contenedor sin privilegios |
 | L1 | PLC: acondicionamiento 4-20 mA, diagnóstico NAMUR, histéresis, reserva, jerarquía manual/auto, vigilancia del contactor (TON 3 s) | `ot/plc/` | OpenPLC v4, Structured Text |
 | L2 | SCADA: 6 vistas ISA-101, faceplates, alarmas ISA-18.2, roles, vista de instructor | `ot/scada/` | FUXA 1.3.4, generado desde Python |
 | L2.5 | Gateway: lee 12 registros (FC03) a 1 Hz y publica el contrato MQTT con calidad y heartbeat | `it/gateway/` | Python, pymodbus, paho-mqtt |
@@ -104,10 +104,10 @@ documentado: no se pierde precisión ni cambia el tipo en el histórico.
 
 | Modo | Uso | Cómo |
 |---|---|---|
-| **Un solo host** | Desarrollo y demostración | OT e IT comparten la red Docker `fuxa_default`; el gateway lee `openplc-runtime:502` directamente |
+| **Un solo host** | Desarrollo y demostración | `python otb.py install`: OT e IT comparten la red Docker `otb-ot`; el gateway lee `openplc-runtime:502` directamente |
 | **OT/IT separados** | Topología realista de planta | `modbus-proxy` publica `:502` en el host OT (firewall: solo el host IT); Mosquitto publica `:1883` para FUXA (firewall: solo el host OT) |
 
-Guía paso a paso: [deployment.md](deployment.md).
+Guía paso a paso: [INSTALL.md](../INSTALL.md) (un solo host) y [deployment.md](deployment.md) (dos hosts).
 
 ## 7. Decisiones de arquitectura
 

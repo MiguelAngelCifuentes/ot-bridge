@@ -17,11 +17,12 @@ Los valores aquí descritos se corresponden con las constantes definidas en
 | Actuadores | 5021 | 1 | Holding Registers (FC 03/06/16) | Lectura/escritura | Tarjetas de salida |
 | Simulación | 5022 | 1 | Holding (FC 03/06/16) + Input (FC 04) | Mixto | Estación de instructor (no existe en planta real) |
 
-**Host de escucha:** `0.0.0.0` (acepta conexiones por cualquier interfaz).
+**Host de escucha:** variable `OTB_FIELD_BIND`. En el contenedor `otb-field-simulator` es `0.0.0.0`, alcanzable
+solo dentro de la red Docker de la zona OT. Ejecutado fuera de Docker, por defecto `127.0.0.1`.
 
 **Direccionamiento del cliente:**
-- Desarrollo en una sola máquina: `127.0.0.1`
-- PLC en Docker: `host.docker.internal` (el simulador corre en el host)
+- PLC y SCADA (en la red `otb-ot`): `field-simulator`
+- Simulador ejecutado en el propio equipo (`python ot/field/main.py`): `127.0.0.1`
 
 ### Por qué dos espacios de direcciones distintos
 

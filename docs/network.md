@@ -14,7 +14,7 @@ FUXA (cliente MQTT)      ◀──── solo lectura ──────   mosqu
 ```
 
 - Flujo de proceso **unidireccional OT → IT**: IT nunca escribe en el PLC.
-- En **un solo host** no se publica nada en la LAN: OT e IT comparten la red Docker `fuxa_default`.
+- En **un solo host** no se publica nada en la LAN: OT e IT comparten la red Docker `otb-ot`.
 
 ## 2. Puertos
 
@@ -22,15 +22,16 @@ FUXA (cliente MQTT)      ◀──── solo lectura ──────   mosqu
 
 | Puerto | Servicio | Publicación por defecto | Notas |
 |---|---|---|---|
-| 5020/tcp | Simulador · sensores (FC04) | todas las interfaces del host | Lo consume el PLC (`host.docker.internal`) |
-| 5021/tcp | Simulador · actuadores (FC03/06/16) | todas las interfaces del host | Lo escribe el PLC |
-| 5022/tcp | Simulador · estación de instructor | todas las interfaces del host | Lo usa FUXA (vista Simulador) |
-| 502/tcp | Esclavo Modbus del PLC | no publicado (red Docker) | Con OT/IT separados: `modbus-proxy` en `${MODBUS_BIND}` |
-| 8443/tcp | API del runtime OpenPLC | `127.0.0.1` | Solo para el Editor local |
+| 5020/tcp | Simulador · sensores (FC04) | no publicado (red `otb-ot`) | Lo consume el PLC (`field-simulator:5020`) |
+| 5021/tcp | Simulador · actuadores (FC03/06/16) | no publicado (red `otb-ot`) | Lo escribe el PLC |
+| 5022/tcp | Simulador · estación de instructor | no publicado (red `otb-ot`) | Lo usa FUXA (vista Simulador) |
+| 502/tcp | Esclavo Modbus del PLC | no publicado (red `otb-ot`) | Con OT/IT separados: `modbus-proxy` en `${MODBUS_BIND}` |
+| 8443/tcp | API del runtime OpenPLC | `127.0.0.1` | Solo para `otb.py` y OpenPLC Editor en el propio host |
 | 1881/tcp | FUXA SCADA | `${FUXA_BIND:-127.0.0.1}` | Abrir a la red de planta de forma explícita |
 
-> El simulador representa el cableado de campo. En una instalación compartida conviene restringir
-> 5020-5022 al propio host con el firewall.
+> El simulador representa el cableado de campo: sus puertos Modbus (sin autenticación, mueven actuadores)
+> nunca salen de la red Docker de la zona OT. Si se ejecuta fuera de Docker (`python ot/field/main.py`), escucha
+> solo en `127.0.0.1` salvo que se indique otra interfaz en `OTB_FIELD_BIND`.
 
 ### Capa IT
 

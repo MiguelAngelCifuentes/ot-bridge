@@ -11,17 +11,21 @@ estuviera conectado.
 
 ## Decisión
 
-El servicio `openplc-runtime` de `ot/scada/docker-compose.yml` borra el programa compilado en cada arranque:
+El servicio `openplc-runtime` (contenedor `otb-openplc`) de `ot/scada/docker-compose.yml` borra el programa compilado en cada arranque:
 
 ```yaml
 command: ["bash", "-c", "rm -f /workdir/build/libplc_*.so && exec bash ./start_openplc.sh"]
 ```
 
-El runtime arranca vacío y solo un **Build/Upload desde OpenPLC Editor** carga el programa y lo pone en RUN.
+El runtime arranca vacío y solo un despliegue explícito carga el programa y lo pone en RUN:
+
+- **Build** desde OpenPLC Editor (desarrollo de la lógica), o
+- `python otb.py deploy-plc`, que sube por la API del runtime el paquete compilado de `ot/plc/dist/runtime-v4`
+  (el mismo que genera el Editor). `otb.py install` y `otb.py start` lo hacen como último paso.
 
 ## Consecuencias
 
 - Tras un corte de energía o un reinicio, la planta queda parada hasta un arranque deliberado
   (comportamiento esperado en una puesta en marcha controlada).
 - Hay que volver a desplegar el programa tras cada reinicio del contenedor.
-- Usuarios y configuración del runtime se conservan en el volumen `openplc-runtime-data`.
+- Usuarios y configuración del runtime se conservan en el volumen `openplc-data`.

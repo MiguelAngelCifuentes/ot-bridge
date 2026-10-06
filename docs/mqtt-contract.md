@@ -186,7 +186,7 @@ factory/alarms/events
 ## 8. Verificación
 
 ```powershell
-docker exec mosquitto mosquitto_sub -h 127.0.0.1 -u historian -P <pass> -t "factory/#" -v -C 20
+docker exec otb-mosquitto mosquitto_sub -h 127.0.0.1 -u historian -P <pass> -t "factory/#" -v -C 20
 python it/scripts/test_opcua.py      # nodos OPC UA en vivo (cifrado + usuario)
 python it/scripts/test_read_plc.py   # registros Modbus crudos y escalados
 ```

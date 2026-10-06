@@ -22,6 +22,7 @@
 ![OPC UA](https://img.shields.io/badge/OPC_UA-Basic256Sha256-555)
 ![Grafana](https://img.shields.io/badge/Grafana-11-F46800?logo=grafana&logoColor=white)
 
+**[Instalación](INSTALL.md)** ·
 **[Arquitectura](docs/architecture.md)** ·
 **[Seguridad](docs/security.md)** ·
 **[Despliegue](docs/deployment.md)** ·
@@ -39,6 +40,10 @@ datos a una capa IT completa con histórico, alarmas ISA-18.2, gemelo digital, O
 No es un programa: son **trece servicios especializados unidos por contratos de datos explícitos**,
 organizados según el modelo **Purdue** y segmentados en **zonas y conductos IEC 62443**.
 
+> [!TIP]
+> **Pruébalo en tu equipo con un solo comando:** `python otb.py install` instala, despliega y verifica los 13
+> servicios. Solo necesitas Docker y Python. → [Guía de instalación](INSTALL.md)
+
 <div align="center">
 
 <img src="docs/images/demo-fault-injection.gif" alt="Inyección de un fallo de cable en el transmisor LT-101 y reacción del sistema" width="100%">
@@ -53,7 +58,7 @@ SCADA y viaja por MQTT a la capa IT → al restablecer el cable, el sistema se r
 
 <div align="center">
 
-| 3 capas OT | 10 servicios IT | 6 vistas SCADA | 7 dashboards | 5 fallos inyectables | 62 tests + E2E 27/27 |
+| 3 capas OT | 10 servicios IT | 6 vistas SCADA | 7 dashboards | 5 fallos inyectables | 63 tests + E2E |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | simulador · PLC · SCADA | broker · historian · API · alarmas · gemelo · OPC UA… | generadas desde código | generados desde código | estación de instructor | pytest · JUnit · smoke test |
 
@@ -168,31 +173,39 @@ Modelo de amenazas, riesgos aceptados y lecciones aprendidas: **[docs/security.m
 
 ## Puesta en marcha
 
-```powershell
-git clone https://github.com/MiguelAngelCifuentes/ot-bridge.git && cd ot-bridge
-copy it\.env.example it\.env
-python it\scripts\ensure_secrets.py      # genera todos los secretos (aleatorios, nunca se imprimen)
-python it\scripts\mqtt_passwd.py         # usuarios del broker desde .env
-powershell -ExecutionPolicy Bypass -File it\scripts\up-single-host.ps1
+Requisitos: **Docker** con Compose v2 y **Python 3.10+**. Nada más: ni OpenPLC Editor, ni librerías de Python.
+
+```bash
+git clone https://github.com/MiguelAngelCifuentes/ot-bridge.git
+cd ot-bridge
+python otb.py install
 ```
 
-Después, en **OpenPLC Editor**, abre `ot/plc` y pulsa **Build**: el PLC arranca vacío por diseño.
-Guía completa, despliegue en dos hosts y firewall: **[docs/deployment.md](docs/deployment.md)**.
+El instalador comprueba los requisitos, genera secretos únicos, arranca los 13 servicios, compila y carga el
+programa del PLC, despliega el SCADA y **verifica todo de extremo a extremo**. Después:
+
+```bash
+python otb.py status               # estado de los servicios y direcciones de acceso
+python otb.py credentials --show   # usuarios y contraseñas de tu instalación
+```
+
+**[Guía de instalación completa →](INSTALL.md)** · Despliegue OT/IT en dos hosts: [docs/deployment.md](docs/deployment.md)
 
 ## Estructura
 
 ```
 ot-bridge/
+├── otb.py                     instalador y operación (install · status · start · stop · uninstall)
 ├── ot/                        Zona OT
-│   ├── field/                 L0 · simulador de planta (Modbus :5020 / :5021 / :5022)
-│   ├── plc/                   L1 · proyecto OpenPLC v4 (Structured Text)
+│   ├── field/                 L0 · simulador de planta (contenedor; Modbus :5020 / :5021 / :5022)
+│   ├── plc/                   L1 · proyecto OpenPLC v4 (Structured Text) y despliegue por API
 │   └── scada/                 L2 · FUXA: compose OT, HMI como código, estación de instructor
 ├── it/                        Zona IT
 │   ├── gateway/               L2.5 · Modbus FC03 → MQTT
 │   ├── historian/ alarm-engine/ digital-twin/ opcua-server/      servicios Python
 │   ├── api/                   API REST Spring Boot + PostgreSQL (Flyway)
 │   ├── mosquitto/ influxdb/ postgres/ grafana/                    infraestructura y dashboards como código
-│   ├── scripts/               secretos, arranque, smoke test, backup y restauración
+│   ├── scripts/               secretos, smoke test, diagnóstico, backup y restauración
 │   └── docker-compose*.yml    despliegue OT/IT separado o en un solo host
 └── docs/                      arquitectura, seguridad, red, contratos, runbook, ADR
 ```
@@ -213,7 +226,8 @@ ot-bridge/
 | Suite | Qué cubre |
 |---|---|
 | **pytest** (45) | Contrato y escalado del gateway, parseo del historian, reglas, histéresis y reconciliación del motor de alarmas, gemelo digital |
-| **JUnit + MockMvc** (17) | Idempotencia de alarmas, scoring de mantenimiento, filtro de API key, errores 4xx |
+| **JUnit + MockMvc** (18) | Idempotencia de alarmas, scoring de mantenimiento, filtro de API key (incluidas rutas no canónicas), errores 4xx |
+| **Instalación completa** | En cada push, la CI instala la plataforma desde cero en Linux con `otb.py`, comprueba que el SCADA recibe datos y ejecuta la prueba E2E |
 | **Build del SCADA** | Validación de 13 vistas, 237 controles, 50 tags: referencias, históricos y mandos sin permiso |
 | **Smoke test E2E** (27) | Servicios healthy, flujo PLC → InfluxDB / API, controles de seguridad y ciclo completo de una alarma |
 | **SCADA en sandbox** | 24 comprobaciones funcionales pulsando el HMI real y 4 roles |
@@ -247,5 +261,5 @@ ot-bridge/
 
 <div align="center">
 <sub>Proyecto de demostración y aprendizaje: no está pensado para controlar procesos reales sin una evaluación de riesgos.
-Licencia <a href="LICENSE">MIT</a>.</sub>
+Licencia <a href="LICENSE">MIT</a> · componentes de terceros en <a href="ot/plc/README.md#componentes-de-terceros">ot/plc</a>.</sub>
 </div>

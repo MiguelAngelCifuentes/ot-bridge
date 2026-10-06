@@ -21,9 +21,11 @@ implementados, el modelo de amenazas, los riesgos aceptados y el roadmap.
 | Área | Control | Dónde |
 |---|---|---|
 | **Red** | Todos los puertos IT publicados solo en `127.0.0.1`; `1883` en la LAN únicamente si se define `MQTT_LAN_BIND` | `it/docker-compose.yml` |
+| | Simulador de campo en su propio contenedor, sin publicar: sus puertos Modbus (mueven actuadores) solo existen dentro de la red OT; fuera de Docker escucha en `127.0.0.1` | `ot/field/`, `ot/scada/docker-compose.yml` |
 | | Puertos OT en loopback por defecto (`FUXA_BIND`, `MODBUS_BIND` para abrirlos de forma explícita) | `ot/scada/docker-compose.yml` |
 | | Reglas de firewall de origen para Modbus `502` y MQTT `1883` en despliegue separado | [network.md](network.md) |
 | **PLC** | Arranque seguro: el programa compilado se elimina en cada arranque del runtime | `ot/scada/docker-compose.yml` |
+| | Cuenta del runtime creada por el instalador con contraseña aleatoria nada más arrancar (la API solo escucha en loopback, nadie puede adelantarse); el despliegue por API rechaza runtimes que no sean locales | `ot/plc/deploy_plc.py` |
 | | Seguridades con prioridad sobre cualquier mando: seta, fallo de sensor (NAMUR), fallo de arranque (contactor) | `ot/plc/pous/programs/main.st` |
 | **SCADA** | Autenticación y roles; el build del HMI **rechaza** cualquier mando sin permiso | `ot/scada/hmi/` |
 | | Credenciales MQTT de FUXA en su almacén de seguridad, nunca dentro del proyecto exportable | `ot/scada/hmi/deploy.py` |
@@ -37,7 +39,8 @@ implementados, el modelo de amenazas, los riesgos aceptados y el roadmap.
 | **Suministro** | Imágenes fijadas por versión o digest; dependencias Python con `==` y Maven con versión | compose, `requirements.txt`, `pom.xml` |
 | **Secretos** | `.env` gitignored; Compose no arranca si falta un secreto (`${VAR:?}`), en vez de usar un valor vacío; `ensure_secrets.py` genera valores aleatorios y sustituye los marcadores de la plantilla sin imprimirlos | `it/scripts/ensure_secrets.py` |
 | **Backups** | Sin secretos (`.env` y `passwd` excluidos), con `manifest.sha256` y prueba de restauración aislada | `it/scripts/backup.ps1`, `restore_test.ps1` |
-| **Repositorio** | gitleaks en pre-commit y en CI, Trivy sobre configuración e imágenes, Dependabot | `.pre-commit-config.yaml`, `.github/` |
+| **Repositorio** | gitleaks en pre-commit y en CI, Trivy sobre la configuración, acciones de CI fijadas por SHA, Dependabot solo con parches y versiones menores | `.pre-commit-config.yaml`, `.github/` |
+| **Instalación** | `otb.py` genera secretos únicos, deja `it/.env` con permisos `600`, nunca imprime contraseñas (tampoco en sus registros) y verifica la instalación de extremo a extremo; la CI repite la instalación completa en Linux | `otb.py` |
 
 ## 3. Riesgos aceptados
 

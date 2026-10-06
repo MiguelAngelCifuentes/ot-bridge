@@ -1,83 +1,91 @@
 # Despliegue — OT-Bridge
 
-## Requisitos
+| Modo | Para qué | Cómo |
+|---|---|---|
+| **Un solo host** | Desarrollo, demostración y portfolio | `python otb.py install` — guía completa en [INSTALL.md](../INSTALL.md) |
+| **OT e IT en hosts separados** | Topología realista de planta: zona OT y zona IT en equipos distintos, unidas por un conducto de solo lectura con firewall | Este documento |
 
-| Herramienta | Versión probada |
-|---|---|
-| Docker Desktop / Engine + Compose | Compose v2 o superior |
-| Python | 3.11 o superior (simulador y scripts) |
-| OpenPLC Editor | v4 (para compilar y desplegar `ot/plc`) |
-| Windows PowerShell 5.1 | Scripts `*.ps1` de operación (opcionales) |
+## Topología con dos hosts
 
-## 1. Un solo host (recomendado para empezar)
-
-```powershell
-git clone https://github.com/<usuario>/ot-bridge.git
-cd ot-bridge
-
-# 1. Secretos: plantilla + valores aleatorios (nunca se imprimen)
-copy it\.env.example it\.env
-python it\scripts\ensure_secrets.py
-python it\scripts\mqtt_passwd.py
-
-# 2. Entorno Python (simulador y herramientas)
-py -3 -m venv it\venv
-it\venv\Scripts\pip install -r it\requirements-dev.txt -r ot\field\requirements.txt
-
-# 3. Todo en marcha: capa OT, simulador y los 10 servicios IT
-powershell -ExecutionPolicy Bypass -File it\scripts\up-single-host.ps1
+```
+host OT (planta)                                       host IT (oficina / CPD)
+├─ otb-field-simulator  (red otb-ot, sin publicar)
+├─ otb-openplc          :8443 → 127.0.0.1             ├─ otb-gateway ── lee <OT_HOST>:502 (FC03)
+├─ otb-modbus-proxy     :502  → <OT_HOST>  ──────────▶│
+└─ otb-fuxa             :1881 → <OT_HOST>  ◀──────────├─ otb-mosquitto :1883 → <IT_HOST> (usuario fuxa, solo lectura)
+                                                       └─ … resto del stack IT en 127.0.0.1
 ```
 
-Después, en **OpenPLC Editor**: abre `ot/plc`, conecta con el runtime (`https://localhost:8443`) y pulsa
-**Build**. El PLC arranca vacío por diseño: solo ese despliegue lo pone en RUN.
+Los dos únicos flujos que cruzan entre hosts son el **Modbus de solo lectura** (IT → OT:502) y el **MQTT de solo
+lectura** de FUXA (OT → IT:1883). Los dos están restringidos por origen en el firewall ([network.md](network.md)).
 
-Y despliega el SCADA generado desde código:
+## 1. Preparar ambos hosts
 
-```powershell
-it\venv\Scripts\python ot\scada\hmi\generator\build.py --target plant
-it\venv\Scripts\python ot\scada\hmi\deploy.py --target plant
-it\venv\Scripts\python ot\scada\hmi\security.py --target plant
-it\venv\Scripts\python ot\scada\tools\build_simulation_view.py --url http://localhost:1881 --user admin
+En los dos: Docker con Compose v2, Python 3.10+ y el repositorio clonado.
+
+```bash
+git clone https://github.com/MiguelAngelCifuentes/ot-bridge.git && cd ot-bridge
 ```
 
-| Servicio | URL local |
-|---|---|
-| SCADA FUXA | http://localhost:1881 |
-| Grafana | http://localhost:3000 |
-| API REST | http://localhost:8080/api (cabecera `X-API-Key`) |
-| OpenPLC runtime | https://localhost:8443 |
-| OPC UA | opc.tcp://localhost:4840 |
+Los secretos se generan **una sola vez, en el host IT**, y se copian al host OT por un canal seguro (USB cifrado,
+`scp`), nunca por correo ni por chat. El host OT necesita las variables `OPENPLC_*`, `FUXA_*` y
+`MQTT_PASSWORD_FUXA`.
 
-Parada: `it\scripts\down-single-host.ps1` (añade `-IncludeOT` para parar también PLC y SCADA).
+## 2. Host IT
 
-## 2. OT e IT en hosts separados
-
-**Host OT**
-
-```powershell
-$env:FUXA_BIND = "<IP del host OT>"     # operación del SCADA desde la red de planta
-$env:MODBUS_BIND = "<IP del host OT>"   # conducto hacia el host IT
-docker compose -f ot/scada/docker-compose.yml --profile two-host up -d
-python ot/field/main.py                 # simulador de planta con consola de fallos
+```bash
+copy it\.env.example it\.env          # cp en Linux/macOS
 ```
 
-**Host IT**
+En `it/.env`:
 
-```powershell
-# it/.env: PLC_HOST=<IP del host OT>  ·  MQTT_LAN_BIND=<IP del host IT>
-docker compose -f it/docker-compose.yml up -d
-python it/scripts/fuxa_set_broker.py --fuxa http://<IP del host OT>:1881 --broker mqtt://<IP del host IT>:1883
+```ini
+PLC_HOST=<IP del host OT>
+MQTT_LAN_BIND=<IP del host IT>        # interfaz donde FUXA alcanza el broker
 ```
 
-Aplica las reglas de firewall de [network.md](network.md) en ambos hosts.
+```bash
+python it/scripts/ensure_secrets.py
+python it/scripts/mqtt_passwd.py
+docker compose -f it/docker-compose.yml up -d --build
+```
 
-## 3. Verificación
+## 3. Host OT
 
-```powershell
-docker compose -f it/docker-compose.yml ps         # 10 servicios healthy
-python it/scripts/smoke_test.py                    # flujo PLC → MQTT → InfluxDB / API y controles de seguridad
-python it/scripts/check_dashboards.py              # todas las consultas de los 7 dashboards
-powershell -File it/scripts/run_tests.ps1          # batería completa
+Copia `it/.env` desde el host IT y arranca la capa OT publicando el SCADA y el conducto Modbus en la interfaz LAN:
+
+```bash
+# PowerShell: $env:FUXA_BIND="<IP del host OT>"; $env:MODBUS_BIND="<IP del host OT>"
+export FUXA_BIND=<IP del host OT> MODBUS_BIND=<IP del host OT>
+docker compose -f ot/scada/docker-compose.yml --profile two-host up -d --build
+
+python ot/plc/deploy_plc.py                                  # programa del PLC y RUN
+
+export FUXA_URL=http://127.0.0.1:1881
+python ot/scada/hmi/plugins.py --target plant                # driver Modbus de FUXA
+python ot/scada/hmi/generator/build.py --target plant
+python ot/scada/hmi/deploy.py --target plant
+python ot/scada/hmi/security.py --target plant
+FUXA_PASSWORD=<FUXA_ADMIN_PASSWORD> python ot/scada/tools/build_simulation_view.py --url $FUXA_URL --user admin
+
+# El SCADA lee las alarmas IT del broker del host IT
+python it/scripts/fuxa_set_broker.py --fuxa $FUXA_URL --broker mqtt://<IP del host IT>:1883
+```
+
+## 4. Firewall
+
+Aplica las reglas de origen de [network.md §3](network.md#3-firewall-despliegue-otit-separado) en los dos hosts:
+`502` en el host OT solo desde el host IT, y `1883` en el host IT solo desde el host OT.
+
+## 5. Verificación
+
+```bash
+# Host IT
+python it/scripts/test_read_plc.py <IP del host OT>   # conducto Modbus (requiere it/requirements-dev.txt)
+python it/scripts/smoke_test.py                       # flujo completo PLC → MQTT → InfluxDB / API
+
+# Host OT
+python ot/scada/hmi/check_scada.py --target plant     # el SCADA recibe datos del PLC y del simulador
 ```
 
 Operación diaria, diagnóstico y backups: [runbook.md](runbook.md).

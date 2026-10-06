@@ -1,9 +1,22 @@
 # Runbook — OT-Bridge
 
-> Operación diaria del stack IT (comandos desde `it/`). Arquitectura en [architecture.md](architecture.md).
+> Operación y diagnóstico. Instalación: [INSTALL.md](../INSTALL.md). Arquitectura: [architecture.md](architecture.md).
+> Salvo indicación, los comandos `docker compose` se ejecutan desde `it/`. Los scripts de diagnóstico que usan
+> pymodbus o asyncua (`test_read_plc.py`, `test_opcua.py`) necesitan `pip install -r it/requirements-dev.txt`.
 > La restauración real (§5) se valida con `restore_test.ps1` en contenedores aislados, sin tocar el stack en marcha.
 
 ## 1. Arranque / parada
+
+Con el instalador (desde la raíz del repositorio):
+
+```bash
+python otb.py status         # 13 servicios y su salud
+python otb.py stop           # para todo; los volúmenes se conservan
+python otb.py start          # arranca todo y recarga el programa del PLC
+python otb.py deploy-plc     # solo el PLC (el runtime arranca vacío tras reiniciar su contenedor)
+```
+
+Servicio a servicio, con Docker Compose:
 
 ```powershell
 docker compose up -d              # arranca los 10 servicios
@@ -16,7 +29,7 @@ docker compose up -d --build --no-deps <servicio>   # reconstruir un solo servic
 El orden lo gestiona compose (`depends_on` con `service_healthy`). Los servicios Python tocan
 `/tmp/heartbeat` en su bucle principal; si dejan de hacerlo 90 s, Docker los marca `unhealthy`.
 
-**Instalación nueva** (volúmenes vacíos): `python scripts\ensure_secrets.py` (genera los secretos que
+**Instalación nueva** (volúmenes vacíos): `python otb.py install` lo hace todo. A mano: `python scripts\ensure_secrets.py` (genera los secretos que
 falten en `.env` y sustituye los marcadores de la plantilla) → `python scripts\mqtt_passwd.py` → `docker compose up -d`. InfluxDB crea usuarios,
 retenciones y CQs en su primer arranque (`influxdb/init`); PostgreSQL, el esquema por Flyway.
 **Instalación existente** tras cambiar credenciales: `python scripts\influx_users.py`,
@@ -93,8 +106,8 @@ Restaura en contenedores temporales sin red, compara hashes y recuentos (Postgre
 
 ```powershell
 docker compose stop plant-api alarm-engine
-docker cp backups\<fecha>\postgres_plant.sql postgres:/tmp/restore.sql
-docker exec postgres psql -U plant -d plant -v ON_ERROR_STOP=1 -f /tmp/restore.sql
+docker cp backups\<fecha>\postgres_plant.sql otb-postgres:/tmp/restore.sql
+docker exec otb-postgres psql -U plant -d plant -v ON_ERROR_STOP=1 -f /tmp/restore.sql
 docker compose start plant-api alarm-engine
 ```
 
@@ -102,9 +115,9 @@ docker compose start plant-api alarm-engine
 
 ```powershell
 docker compose stop historian
-docker exec influxdb influx -username <INFLUX_ADMIN_USER> -password <INFLUX_ADMIN_PASSWORD> -execute "DROP DATABASE plant"
-docker cp backups\<fecha>\influx influxdb:/tmp/restore
-docker exec influxdb influxd restore -portable -db plant -host 127.0.0.1:8088 /tmp/restore
+docker exec otb-influxdb influx -username <INFLUX_ADMIN_USER> -password <INFLUX_ADMIN_PASSWORD> -execute "DROP DATABASE plant"
+docker cp backups\<fecha>\influx otb-influxdb:/tmp/restore
+docker exec otb-influxdb influxd restore -portable -db plant -host 127.0.0.1:8088 /tmp/restore
 python scripts\influx_schema.py        # CQs (las retenciones ya vienen en el backup)
 python scripts\influx_users.py         # permisos de historian_w / reader
 docker compose start historian

@@ -115,7 +115,7 @@ Las alarmas salen de los bits del PLC, así que FUXA no duplica umbrales. Se evi
 ## 7. Sandbox y simulador
 
 - **FUXA del sandbox:** `frangoteam/fuxa:1.3.4`. Es exactamente la versión de planta, comprobada por el hash del bundle (`main.b64ff8912033d095.js`).
-- **Plugin Modbus:** `modbus-serial`, instalado por API y persistido en el volumen `fuxa-pkg`.
+- **Plugin Modbus:** `modbus-serial`, instalado por API con `plugins.py` y persistido en el volumen `fuxa-pkg`. Sin él, FUXA no puede crear los dispositivos Modbus (`plugin is missing`).
 - **`plc_sim.py`:** porta el programa `.st` (mismos registros, TON de 3 s, reset por pulso, arranque sin salto) con una dinámica simple del depósito (1,2 l/min por % de velocidad; salida por gravedad).
 - **Inyección de fallos** (registros del simulador):
   - 2000 = el contactor no confirma;
@@ -129,16 +129,19 @@ Las alarmas salen de los bits del PLC, así que FUXA no duplica umbrales. Se evi
 
 ## 8. Despliegue en planta
 
-1. `python ot/scada/hmi/generator/build.py --target plant`.
-2. `python ot/scada/hmi/deploy.py --target plant` (URL en `FUXA_URL`). Deja una copia en `ot/scada/hmi/backups/` y fija las credenciales MQTT.
-3. `python ot/scada/hmi/security.py --target plant`. Crea los usuarios, activa la autenticación y pone la interfaz en español.
-4. Verificación:
+`python otb.py install` hace los pasos 1–5 automáticamente. A mano:
+
+1. `python ot/scada/hmi/plugins.py --target plant` (driver Modbus; idempotente).
+2. `python ot/scada/hmi/generator/build.py --target plant`.
+3. `python ot/scada/hmi/deploy.py --target plant` (URL en `FUXA_URL`). Deja una copia en `ot/scada/hmi/backups/` y fija las credenciales MQTT.
+4. `python ot/scada/hmi/security.py --target plant`. Crea los usuarios, activa la autenticación y pone la interfaz en español.
+5. Vista de instructor: `python ot/scada/tools/build_simulation_view.py --url <FUXA> --user admin` (dispositivo `SIM_Campo` → `field-simulator:5022`, vista «Simulador», idempotente).
+6. Verificación:
+   - `python ot/scada/hmi/check_scada.py --target plant`: PLC y simulador entregan datos en vivo;
    - los valores coinciden con `test_read_plc.py` y Grafana;
-   - IT-Broker conectado en el log de FUXA;
    - **prueba de mando controlada por el operador** (AUTO → MANUAL → consigna → AUTO).
-5. Vista de instructor: `python ot/scada/tools/build_simulation_view.py --url <FUXA> --user admin` (dispositivo `SIM_Campo`, vista «Simulador», idempotente).
-6. Rollback: `deploy.py --target plant --rollback ot/scada/hmi/backups/<fichero>.json`.
-7. Copia de seguridad sin desplegar (solo lectura): `deploy.py --target plant --backup-only --out <dir>`
+7. Rollback: `deploy.py --target plant --rollback ot/scada/hmi/backups/<fichero>.json`.
+8. Copia de seguridad sin desplegar (solo lectura): `deploy.py --target plant --backup-only --out <dir>`
    (la usa `it/scripts/backup.ps1`).
 
 **Coherencia con la capa IT:** FUXA, Grafana, la API, OPC UA y el gemelo aplican el mismo escalado (caudales /10),
