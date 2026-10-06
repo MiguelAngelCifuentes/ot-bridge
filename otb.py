@@ -6,7 +6,8 @@
     python otb.py credentials    usuarios de cada herramienta (--show para ver las contrasenas)
     python otb.py deploy-plc     vuelve a cargar el programa en el PLC (tras reiniciar su contenedor)
     python otb.py start | stop   arranca o para la plataforma (los datos se conservan)
-    python otb.py uninstall      elimina los contenedores (--volumes borra tambien los datos)
+    python otb.py uninstall      elimina los contenedores (--volumes: tambien los datos;
+                                 --all: deja el equipo como antes de instalar, con confirmacion)
 
 Requisitos: Python 3.10+ y Docker con Compose v2. Sin dependencias de Python adicionales.
 """
@@ -68,8 +69,13 @@ class Log:
         self.total = 0
 
     def write(self, text: str) -> None:
+        if self._file.closed:
+            return
         self._file.write(text if text.endswith("\n") else text + "\n")
         self._file.flush()
+
+    def close(self) -> None:
+        self._file.close()
 
     def step(self, title: str) -> None:
         self.step_no += 1
@@ -295,9 +301,25 @@ def summary(log: Log) -> None:
 
 # ------------------------------------------------------------------------------------------------ acciones
 
+def foreign_containers() -> dict[str, str]:
+    """Contenedores que no son de OT-Bridge (ID -> nombre), para garantizar que la instalacion no los toca."""
+    proc = subprocess.run(["docker", "ps", "-a", "--no-trunc", "--format", "{{.ID}}|{{.Names}}"],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
+    rows = (line.partition("|") for line in proc.stdout.splitlines())
+    return {cid: name for cid, _, name in rows if cid and not name.startswith("otb-")}
+
+
+def check_foreign_untouched(before: dict[str, str], log: Log) -> None:
+    missing = [name for cid, name in before.items() if cid not in foreign_containers()]
+    if missing:
+        log.warn("Han desaparecido contenedores ajenos a OT-Bridge durante la operacion: " + ", ".join(missing) +
+                 ". Por favor, abre un issue con el registro de .otb/")
+
+
 def cmd_install(args) -> None:
     log = Log("install")
     log.total = 7
+    before = foreign_containers()
     preflight(log)
     secrets(log)
     start_ot(log)
@@ -305,6 +327,7 @@ def cmd_install(args) -> None:
     deploy_plc(log)
     deploy_scada(log)
     verify(log)
+    check_foreign_untouched(before, log)
     summary(log)
 
 
@@ -313,17 +336,19 @@ def cmd_start(args) -> None:
     log.total = 4
     if not ENV.exists():
         raise Abort("OT-Bridge no esta instalado: ejecuta primero  python otb.py install")
+    before = foreign_containers()
     preflight(log)
     start_ot(log)
     start_it(log)
     deploy_plc(log)
+    check_foreign_untouched(before, log)
     summary(log)
 
 
 def cmd_stop(args) -> None:
     log = Log("stop")
     log.step("Parando la plataforma (los datos se conservan)")
-    run([*IT_COMPOSE, "stop"], log, cwd=IT, check=False)
+    run([*it_compose_any(), "stop"], log, cwd=IT, check=False)
     run([*OT_COMPOSE, "--profile", "two-host", "stop"], log, check=False)
     log.ok("Plataforma parada. Para volver a arrancar:  python otb.py start")
 
@@ -368,15 +393,147 @@ def cmd_deploy_plc(args) -> None:
     deploy_plc(log)
 
 
+def it_compose_any() -> list[str]:
+    """Compose IT aunque falte it/.env (sus secretos obligatorios impedirian incluso un 'down')."""
+    return IT_COMPOSE if ENV.exists() else [*IT_COMPOSE, "--env-file", str(ENV_EXAMPLE)]
+
+
+def project_images(log: Log) -> list[str]:
+    """Imagenes que usa OT-Bridge: las de los compose, las base de sus Dockerfiles y la de mqtt_passwd."""
+    images = {"eclipse-mosquitto:2.1.2-alpine"}
+    for cmd, cwd in (([*OT_COMPOSE, "--profile", "two-host"], ROOT),
+                     ([*IT_COMPOSE, "--env-file", str(ENV_EXAMPLE)], IT)):
+        out = run([*cmd, "config", "--images"], log, cwd=cwd, check=False).stdout
+        images.update(line.strip() for line in out.splitlines() if line.strip())
+    for dockerfile in [*IT.glob("*/Dockerfile"), ROOT / "ot" / "field" / "Dockerfile"]:
+        for line in dockerfile.read_text(encoding="utf-8").splitlines():
+            if line.upper().startswith("FROM "):
+                images.add(line.split()[1])
+    return sorted(images)
+
+
+def parse_size(text: str) -> float:
+    """'1.45GB', '899MB', '41.8kB' -> bytes (tamanos tal como los muestra la CLI de Docker)."""
+    units = {"B": 1, "KB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12}
+    text = text.strip().upper()
+    for unit in ("TB", "GB", "MB", "KB", "B"):
+        if text.endswith(unit):
+            try:
+                return float(text[: -len(unit)]) * units[unit]
+            except ValueError:
+                return 0.0
+    return 0.0
+
+
+def disk_sizes(log: Log) -> dict[str, float]:
+    """Tamano en disco (descomprimido) de cada imagen local, indexado por ID."""
+    out = run(["docker", "image", "ls", "--no-trunc", "--format", "{{.ID}}|{{.Size}}"], log, check=False).stdout
+    sizes = {}
+    for line in out.splitlines():
+        image_id, _, size = line.partition("|")
+        sizes[image_id.strip()] = max(sizes.get(image_id.strip(), 0.0), parse_size(size))
+    return sizes
+
+
+def image_size(image: str, log: Log, on_disk: dict[str, float]) -> float:
+    proc = run(["docker", "image", "inspect", "--format", "{{.Id}}", image], log, check=False)
+    return on_disk.get(proc.stdout.strip(), 1.0) if proc.returncode == 0 else 0.0
+
+
+def images_disk_usage(log: Log) -> float:
+    out = run(["docker", "system", "df", "--format", "{{.Type}}|{{.Size}}"], log, check=False).stdout
+    return next((parse_size(size) for kind, _, size in (row.partition("|") for row in out.splitlines())
+                 if kind.strip() == "Images"), 0.0)
+
+
+def remove_image(image: str, log: Log) -> tuple[bool, str]:
+    users = run(["docker", "ps", "-a", "--filter", f"ancestor={image}", "--format", "{{.Names}}"],
+                log, check=False).stdout.split()
+    if users:
+        return False, f"la usa otro contenedor ({', '.join(users[:3])})"
+    proc = run(["docker", "rmi", image], log, check=False)
+    if proc.returncode == 0:
+        return True, ""
+    reason = (proc.stderr or proc.stdout).strip().splitlines()[-1:] or ["en uso"]
+    return False, "en uso por otra imagen o etiqueta" if "conflict" in reason[0].lower() else reason[0][:80]
+
+
+LOCAL_FILES = [IT / "mosquitto" / "config" / "passwd", IT / "mosquitto" / "config" / "passwd.bak",
+               ROOT / "ot" / "scada" / "hmi" / "build", ROOT / "ot" / "scada" / "hmi" / "backups",
+               ROOT / "ot" / "scada" / "tools" / "backups"]
+
+
+def confirm_full_removal(images: list[str], sizes: dict[str, float], args) -> None:
+    total_gb = sum(sizes.values()) / 1e9
+    print(f"\n{paint('Desinstalacion completa de OT-Bridge', '1;31')}. Se eliminara:\n")
+    print("  · los 13 contenedores y las redes otb-ot / otb-it")
+    print("  · todos los datos: historico, bases de datos, proyecto SCADA y cuenta del PLC")
+    print(f"  · {len([i for i in images if sizes.get(i)])} imagenes de Docker (~{total_gb:.1f} GB), salvo las que use otro contenedor")
+    print("  · it/.env con las contrasenas, el passwd de MQTT, las copias del SCADA y los registros .otb/")
+    print("\n  El codigo del repositorio no se toca.\n")
+    if args.yes:
+        return
+    if not sys.stdin.isatty():
+        raise Abort("Desinstalacion completa sin terminal interactiva: confirma con  --yes")
+    try:
+        answer = input("  Escribe BORRAR para continuar: ").strip()
+    except EOFError:
+        answer = ""
+    if answer != "BORRAR":
+        raise Abort("Cancelado: no se ha eliminado nada")
+
+
 def cmd_uninstall(args) -> None:
     log = Log("uninstall")
-    log.step("Eliminando los contenedores de OT-Bridge" + (" y sus datos" if args.volumes else ""))
-    extra = ["-v"] if args.volumes else []
-    run([*IT_COMPOSE, "down", "--remove-orphans", *extra], log, cwd=IT, check=False)
+    remove_data = args.volumes or args.all
+    images, sizes = [], {}
+    if args.all:
+        images = project_images(log)
+        on_disk = disk_sizes(log)
+        sizes = {image: image_size(image, log, on_disk) for image in images}
+        confirm_full_removal(images, sizes, args)
+    log.total = 3 if args.all else 1
+    before = foreign_containers()
+
+    log.step("Contenedores y redes" + (" junto con los datos" if remove_data else ""))
+    extra = ["-v"] if remove_data else []
+    run([*it_compose_any(), "down", "--remove-orphans", *extra], log, cwd=IT, check=False)
     run([*OT_COMPOSE, "--profile", "two-host", "down", "--remove-orphans", *extra], log, check=False)
-    log.ok("Contenedores eliminados" + (" junto con los volumenes de datos" if args.volumes else
-                                        " (datos conservados; --volumes para borrarlos)"))
-    log.info("it/.env y mosquitto/config/passwd se conservan (borralos a mano si ya no los necesitas)")
+    check_foreign_untouched(before, log)
+    left = [name for name in container_states()]
+    if left:
+        raise Abort(f"No se pudieron eliminar: {', '.join(left)} (detalle en {log.path.relative_to(ROOT)})")
+    log.ok("Contenedores y redes eliminados" + (", datos borrados" if remove_data else
+                                                 " (datos conservados; --volumes para borrarlos)"))
+    if not args.all:
+        log.info("Para dejar el equipo como antes de instalar (imagenes, .env, registros):  "
+                 "python otb.py uninstall --all")
+        return
+
+    log.step("Imagenes de Docker")
+    before, kept = images_disk_usage(log), []
+    for image in images:
+        if not sizes.get(image):
+            continue
+        removed, reason = remove_image(image, log)
+        if not removed:
+            kept.append(f"{image} ({reason})")
+    freed = max(0.0, before - images_disk_usage(log))
+    log.ok(f"{freed / 1e9:.1f} GB liberados")
+    for item in kept:
+        log.info(f"conservada: {item}")
+
+    log.step("Ficheros locales")
+    for path in [ENV, *LOCAL_FILES]:
+        if path.is_dir():
+            shutil.rmtree(path, ignore_errors=True)
+        elif path.exists():
+            path.unlink()
+    log.ok("it/.env, passwd de MQTT y copias del SCADA eliminados")
+    log.close()
+    shutil.rmtree(LOG_DIR, ignore_errors=True)
+    print(f"      {paint('OK', '1;32')}   registros .otb/ eliminados")
+    print(f"\n{paint('OT-Bridge desinstalado por completo.', '1;32')} Ya puedes borrar la carpeta del repositorio.\n")
 
 
 def main() -> int:
@@ -390,8 +547,11 @@ def main() -> int:
     cred.add_argument("--show", action="store_true", help="muestra las contrasenas completas")
     cred.set_defaults(func=cmd_credentials)
     sub.add_parser("deploy-plc", help="vuelve a cargar el programa en el PLC").set_defaults(func=cmd_deploy_plc)
-    uninst = sub.add_parser("uninstall", help="elimina los contenedores")
+    uninst = sub.add_parser("uninstall", help="elimina los contenedores (con --all, deja el equipo como antes)")
     uninst.add_argument("--volumes", action="store_true", help="borra tambien los datos (historico, BBDD, SCADA)")
+    uninst.add_argument("--all", action="store_true",
+                        help="desinstalacion completa: contenedores, datos, imagenes, it/.env y registros")
+    uninst.add_argument("--yes", action="store_true", help="no pide confirmacion (para automatizacion)")
     uninst.set_defaults(func=cmd_uninstall)
     args = parser.parse_args()
     try:

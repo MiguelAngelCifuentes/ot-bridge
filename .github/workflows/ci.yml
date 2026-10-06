@@ -125,6 +125,8 @@ jobs:
           docker ps -a --filter name=otb-
           tail -n 150 .otb/*.log
           for c in otb-openplc otb-fuxa otb-field-simulator otb-gateway; do echo "== $c"; docker logs --tail 40 "$c" || true; done
-      - name: Desinstalar
+      - name: Desinstalación completa (contenedores, datos, imágenes y ficheros)
         if: always()
-        run: python otb.py uninstall --volumes
+        run: |
+          python otb.py uninstall --all --yes
+          test -z "$(docker ps -aq --filter name=otb-)" && test ! -e it/.env && test ! -d .otb

@@ -151,7 +151,7 @@ python otb.py credentials --show   # con las contraseñas
 | `python otb.py deploy-plc` | Recarga el programa del PLC (por ejemplo, tras reiniciar solo su contenedor) |
 | `python otb.py credentials [--show]` | Usuarios y contraseñas |
 | `python otb.py install` | Actualiza tras un `git pull` y lo verifica todo de nuevo |
-| `python otb.py uninstall [--volumes]` | Elimina los contenedores (y con `--volumes`, también los datos) |
+| `python otb.py uninstall [--volumes \| --all]` | Desinstala ([detalle](#10-desinstalación)) |
 
 Pruebas y diagnóstico avanzado: [docs/runbook.md](docs/runbook.md) y [docs/validation.md](docs/validation.md).
 
@@ -256,13 +256,23 @@ El registro completo de la última ejecución está en `.otb/`. Si abres un issu
 
 ## 10. Desinstalación
 
+| Comando | Qué elimina | Cuándo usarlo |
+|---|---|---|
+| `python otb.py uninstall` | Contenedores y redes. **Conserva** datos, imágenes y contraseñas | Liberar memoria; volver con `python otb.py start` |
+| `python otb.py uninstall --volumes` | Lo anterior **y los datos**: histórico, bases de datos, proyecto SCADA y cuenta del PLC | Empezar de cero manteniendo las imágenes descargadas |
+| `python otb.py uninstall --all` | **Todo**: lo anterior, las imágenes de Docker (~7 GB), `it/.env`, el `passwd` de MQTT, las copias del SCADA y los registros | Dejar el equipo como antes de instalar |
+
+`--all` muestra exactamente qué va a borrar y pide escribir `BORRAR` para confirmar. Nunca elimina una imagen que
+use otro contenedor de tu equipo, y no toca el código del repositorio. Al terminar, solo queda borrar la carpeta:
+
 ```bash
-python otb.py uninstall              # elimina los contenedores y conserva los datos
-python otb.py uninstall --volumes    # elimina también histórico, bases de datos y proyecto SCADA
+python otb.py uninstall --all
+cd .. && rm -rf ot-bridge          # Windows: rmdir /s /q ot-bridge
 ```
 
-Después puedes borrar la carpeta del repositorio. `it/.env` contiene tus contraseñas: bórralo si ya no lo
-necesitas.
+> [!NOTE]
+> Ninguna desinstalación toca contenedores, imágenes en uso ni volúmenes de otros proyectos. Si detectara que ha
+> desaparecido algún contenedor ajeno durante una operación, lo avisaría por su nombre.
 
 ---
 
