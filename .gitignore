@@ -60,3 +60,6 @@ desktop.ini
 
 # Capturas sin revisar
 docs/images/_incoming/
+
+# Registros del instalador (otb.py)
+.otb/
