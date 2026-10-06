@@ -1,0 +1,76 @@
+# OT-Bridge · capa OT en contenedores: PLC (OpenPLC Runtime v4) + SCADA (FUXA).
+# El simulador de planta (ot/field) corre en el host y el PLC lo alcanza como host.docker.internal.
+#
+#   docker compose -f ot/scada/docker-compose.yml up -d                       # un solo host
+#   docker compose -f ot/scada/docker-compose.yml --profile two-host up -d    # OT/IT en hosts separados
+#
+# Publicacion de puertos: por defecto solo en loopback. Para operar desde la LAN se define la interfaz en
+# FUXA_BIND / MODBUS_BIND (y el firewall restringe el origen, ver docs/network.md).
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  openplc-runtime:
+    image: ghcr.io/autonomy-logic/openplc-runtime@sha256:1650a50d1a3e9c75cdd548c06866fc328aac1268af9b83c0313a4ab96500325d   # v4.1.10
+    container_name: openplc-runtime
+    # El runtime pasa a RUN al arrancar si encuentra un programa compilado. Se borra en cada arranque para
+    # que solo un Build/Upload desde OpenPLC Editor ponga el PLC en marcha (arranque seguro y explicito).
+    command: ["bash", "-c", "rm -f /workdir/build/libplc_*.so && exec bash ./start_openplc.sh"]
+    cap_add: [SYS_NICE, SYS_RESOURCE]       # planificacion en tiempo real del ciclo de scan
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:8443:8443"               # API/web del runtime, solo para el Editor local
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # simulador de planta en el host (:5020/:5021)
+    volumes:
+      - openplc-runtime-data:/var/run/runtime   # usuarios y configuracion del runtime
+    restart: "no"
+    logging: *logging
+
+  fuxa:
+    image: frangoteam/fuxa@sha256:ec90e4fce7a60ededc292e508a0461624b1be189876665d5703fe1a1af7f7677   # 1.3.4
+    container_name: fuxa
+    security_opt:
+      - no-new-privileges:true
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # estacion de instructor del simulador (:5022)
+    ports:
+      - "${FUXA_BIND:-127.0.0.1}:1881:1881"
+    volumes:
+      - ./fuxa_data:/usr/src/app/FUXA/server/_appdata    # proyecto, usuarios y secreto JWT (no versionado)
+      - ./fuxa_db:/usr/src/app/FUXA/server/_db           # historico DAQ
+      - ./fuxa_logs:/usr/src/app/FUXA/server/_logs
+      - fuxa_pkg:/usr/src/app/FUXA/server/_pkg           # plugins (modbus-serial)
+    restart: unless-stopped
+    logging: *logging
+
+  # Solo con OT e IT en hosts distintos: expone el esclavo Modbus del PLC (:502) al gateway del host IT.
+  # Modbus TCP no tiene autenticacion: el firewall del host OT solo admite el origen del host IT.
+  modbus-proxy:
+    profiles: [two-host]
+    image: alpine/socat@sha256:5ffbd6ae916cbad86a58fabe0d6d5a6fd5c2b47ddf031e82996baac9300e732f
+    container_name: modbus-proxy
+    command: ["TCP-LISTEN:502,fork,reuseaddr", "TCP:openplc-runtime:502"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    ports:
+      - "${MODBUS_BIND:-127.0.0.1}:502:502"
+    depends_on: [openplc-runtime]
+    restart: unless-stopped
+    logging: *logging
+
+networks:
+  default:
+    name: fuxa_default        # red OT compartida; en un solo host el stack IT se une a ella
+
+volumes:
+  openplc-runtime-data:
+    name: openplc-runtime-data
+  fuxa_pkg:
