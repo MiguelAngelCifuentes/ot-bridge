@@ -1,0 +1,62 @@
+# ── Secrets: never in the repository ─────────────────────────────
+.env
+.env.*
+!.env.example
+**/mosquitto/config/passwd
+**/mosquitto/config/passwd.*
+*.pem
+*.key
+*.der
+*.crt
+*.p12
+*.pfx
+**/.opcua-client/
+
+# ── SCADA runtime data (users, JWT secret, credentials, history) ─
+**/fuxa_data/
+**/fuxa_db/
+**/fuxa_logs/
+**/mysettings.json
+*.fuxap.db
+*.db
+*.sqlite
+
+# ── Generated artefacts ──────────────────────────────────────────
+**/build/
+**/backups/
+ot/plc/build/
+*.zip
+*.rar
+
+# ── Logs and runtime files ───────────────────────────────────────
+logs/
+*.log
+*.pid
+
+# ── Python ───────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# ── Java ─────────────────────────────────────────────────────────
+target/
+
+# ── Documents and personal notes ─────────────────────────────────
+*.docx
+*.pdf
+CLAUDE.md
+AGENTS.md
+
+# ── IDE / OS ─────────────────────────────────────────────────────
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Capturas sin revisar
+docs/images/_incoming/
