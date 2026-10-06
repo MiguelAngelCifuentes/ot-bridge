@@ -1,0 +1,28 @@
+# Despliegue en un solo host: stack IT en la misma maquina que la capa OT (OpenPLC + FUXA + simulador).
+# Se superpone a docker-compose.yml sin modificarlo:
+#   docker compose -f docker-compose.yml -f docker-compose.single-host.yml up -d
+# Lo lanza scripts/up-single-host.ps1. Requiere la red Docker de OT (fuxa_default), que crea
+# ot/scada/docker-compose.yml.
+services:
+  mosquitto:
+    ports: !override
+      - "127.0.0.1:1883:1883"        # sin salida a la LAN: FUXA llega por la red de OT como mosquitto:1883
+    networks:
+      - plant-net
+      - ot-net
+
+  postgres:
+    ports: !reset []                 # sin publicar: la API y Grafana van por la red interna (evita choques con un PostgreSQL local)
+
+  gateway:
+    environment:
+      PLC_HOST: openplc-runtime      # lectura directa por la red de OT, sin modbus-proxy ni firewall
+      PLC_PORT: "502"
+    networks:
+      - plant-net
+      - ot-net
+
+networks:
+  ot-net:
+    name: fuxa_default
+    external: true

@@ -1,0 +1,7 @@
+# Entorno de desarrollo y tests (venv de la raiz): dependencias de todos los servicios Python + pytest
+-r gateway/requirements.txt
+-r historian/requirements.txt
+-r alarm-engine/requirements.txt
+-r digital-twin/requirements.txt
+-r opcua-server/requirements.txt
+pytest==9.1.1
