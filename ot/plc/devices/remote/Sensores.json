@@ -1,0 +1,120 @@
+{
+  "name": "Sensores",
+  "protocol": "modbus-tcp",
+  "modbusTcpConfig": {
+    "host": "host.docker.internal",
+    "port": 5020,
+    "timeout": 1000,
+    "slaveId": 1,
+    "ioGroups": [
+      {
+        "id": "53f644cb-a7c4-40a5-913b-0ee442ee5e94",
+        "name": "nivel_ma_x100",
+        "functionCode": "4",
+        "cycleTime": 100,
+        "offset": "0",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "nivel_ma_x100_0",
+            "name": "nivel_ma_x100_0",
+            "type": "Analog Input (Input Register)",
+            "iecLocation": "%IW0",
+            "alias": ""
+          }
+        ]
+      },
+      {
+        "id": "5295260b-807e-44d5-ab86-698dd481d829",
+        "name": "caudal_entrada",
+        "functionCode": "4",
+        "cycleTime": 100,
+        "offset": "1",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "caudal_entrada_0",
+            "name": "caudal_entrada_0",
+            "type": "Analog Input (Input Register)",
+            "iecLocation": "%IW1",
+            "alias": ""
+          }
+        ]
+      },
+      {
+        "id": "d426f8cc-4d7f-4d2d-92a0-8552e39a70b2",
+        "name": "caudal_salida",
+        "functionCode": "4",
+        "cycleTime": 100,
+        "offset": "2",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "caudal_salida_0",
+            "name": "caudal_salida_0",
+            "type": "Analog Input (Input Register)",
+            "iecLocation": "%IW2",
+            "alias": ""
+          }
+        ]
+      },
+      {
+        "id": "70ac04f8-766a-411a-b7bd-c83d844811c8",
+        "name": "confirmacion_marcha",
+        "functionCode": "4",
+        "cycleTime": 100,
+        "offset": "3",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "confirmacion_marcha_0",
+            "name": "confirmacion_marcha_0",
+            "type": "Analog Input (Input Register)",
+            "iecLocation": "%IW3",
+            "alias": ""
+          }
+        ]
+      },
+      {
+        "id": "d9e4f4ed-2554-430f-9e62-71ad31d4aaa7",
+        "name": "seta_pulsada",
+        "functionCode": "4",
+        "cycleTime": 100,
+        "offset": "4",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "seta_pulsada_0",
+            "name": "seta_pulsada_0",
+            "type": "Analog Input (Input Register)",
+            "iecLocation": "%IW4",
+            "alias": ""
+          }
+        ]
+      },
+      {
+        "id": "c5a78f0f-fb66-41dc-add9-79d8973a91ff",
+        "name": "velocidad_real_bomba_pct",
+        "functionCode": "4",
+        "cycleTime": 100,
+        "offset": "5",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "velocidad_real_bomba_pct_0",
+            "name": "velocidad_real_bomba_pct_0",
+            "type": "Analog Input (Input Register)",
+            "iecLocation": "%IW5",
+            "alias": ""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "HMI_Server",
+  "protocol": "modbus-tcp",
+  "modbusSlaveConfig": {
+    "enabled": true,
+    "networkInterface": "0.0.0.0",
+    "port": 502
+  }
+}

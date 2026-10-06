@@ -1,0 +1,66 @@
+{
+  "name": "Actuadores",
+  "protocol": "modbus-tcp",
+  "modbusTcpConfig": {
+    "host": "host.docker.internal",
+    "port": 5021,
+    "timeout": 1000,
+    "slaveId": 1,
+    "ioGroups": [
+      {
+        "id": "afee3b67-6615-42bb-97e4-a2e98af061a4",
+        "name": "bomba_marcha",
+        "functionCode": "6",
+        "cycleTime": 100,
+        "offset": "0",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "bomba_marcha_0",
+            "name": "bomba_marcha_0",
+            "type": "Analog Output (Single Register)",
+            "iecLocation": "%QW0",
+            "alias": ""
+          }
+        ]
+      },
+      {
+        "id": "0771550d-df80-4320-a3a7-40a323b1ad97",
+        "name": "bomba_velo",
+        "functionCode": "6",
+        "cycleTime": 100,
+        "offset": "1",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "bomba_velo_0",
+            "name": "bomba_velo_0",
+            "type": "Analog Output (Single Register)",
+            "iecLocation": "%QW1",
+            "alias": ""
+          }
+        ]
+      },
+      {
+        "id": "922d2fa5-f350-47e1-9456-3124e6e554bb",
+        "name": "valvula_abrir",
+        "functionCode": "6",
+        "cycleTime": 100,
+        "offset": "2",
+        "length": 1,
+        "errorHandling": "keep-last-value",
+        "ioPoints": [
+          {
+            "id": "valvula_abrir_0",
+            "name": "valvula_abrir_0",
+            "type": "Analog Output (Single Register)",
+            "iecLocation": "%QW2",
+            "alias": ""
+          }
+        ]
+      }
+    ]
+  }
+}
