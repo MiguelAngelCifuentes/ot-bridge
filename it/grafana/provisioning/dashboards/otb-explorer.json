@@ -1,0 +1,1101 @@
+{
+  "uid": "otb-explorer",
+  "title": "05 · Explorador de datos",
+  "description": "Exploración libre: cualquier variable, agregación e intervalo; correlaciones y calidad del dato.",
+  "tags": [
+    "otbridge"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "OT-Bridge",
+      "type": "dashboards",
+      "tags": [
+        "otbridge"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "fiscalYearStartMonth": 0,
+  "weekStart": "monday",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "plc",
+        "label": "PLC",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "current": {
+          "selected": true,
+          "text": "plc01",
+          "value": "plc01"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      },
+      {
+        "name": "variable",
+        "label": "Variables",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"variable\"",
+        "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"variable\"",
+        "current": {
+          "selected": true,
+          "text": [
+            "nivel_x10",
+            "caudal_ent",
+            "caudal_sal",
+            "velocidad"
+          ],
+          "value": [
+            "nivel_x10",
+            "caudal_ent",
+            "caudal_sal",
+            "velocidad"
+          ]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      },
+      {
+        "name": "agg",
+        "label": "Agregación",
+        "type": "custom",
+        "query": "mean,max,min,median,last",
+        "current": {
+          "selected": true,
+          "text": "mean",
+          "value": "mean"
+        },
+        "options": [
+          {
+            "text": "mean",
+            "value": "mean",
+            "selected": true
+          },
+          {
+            "text": "max",
+            "value": "max",
+            "selected": false
+          },
+          {
+            "text": "min",
+            "value": "min",
+            "selected": false
+          },
+          {
+            "text": "median",
+            "value": "median",
+            "selected": false
+          },
+          {
+            "text": "last",
+            "value": "last",
+            "selected": false
+          }
+        ],
+        "multi": false,
+        "includeAll": false,
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "interval",
+        "label": "Intervalo",
+        "type": "interval",
+        "query": "5s,10s,30s,1m,5m,15m,1h",
+        "auto": true,
+        "auto_count": 200,
+        "auto_min": "1s",
+        "current": {
+          "selected": true,
+          "text": "auto",
+          "value": "$__auto_interval_interval"
+        },
+        "options": [],
+        "hide": 0,
+        "refresh": 2,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "PLC offline",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#C4162A",
+        "target": {
+          "refId": "Anno",
+          "rawQuery": true,
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "influxdb",
+          "query": "SELECT \"online\" FROM \"plc_status\" WHERE (\"online\" = 0 AND \"plc\" =~ /^$plc$/) AND $timeFilter"
+        }
+      },
+      {
+        "name": "Alarmas CRITICAL",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#F2495C",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'CRITICAL' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas HIGH",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#FF9830",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'HIGH' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas WARNING",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": false,
+        "hide": true,
+        "iconColor": "#FADE2A",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'WARNING' AND $__timeFilter(ts_active)"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "$variable",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "repeat": "variable"
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "$variable · $agg cada $interval",
+      "description": "Serie de la variable en unidades del contrato MQTT con la agregación e intervalo elegidos.",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT $agg(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = '$variable' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "$variable"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8AB8FF"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "$variable · 30 días (agregado 1 min)",
+      "description": "Tendencia larga desde la retención rp_1y (continuous query de 1 min, un año): media horaria. Las vistas largas no leen los datos crudos a 1 Hz.",
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 7
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"mean\") FROM \"rp_1y\".\"sensor_readings_1m\" WHERE (\"variable\" = '$variable' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(1h) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "$variable"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B877D9"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "timeFrom": "30d"
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Estadísticos de $variable",
+      "description": "Estadística descriptiva de la variable en el rango seleccionado.",
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 7
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT min(\"value\") AS \"Mínimo\", max(\"value\") AS \"Máximo\", mean(\"value\") AS \"Media\", stddev(\"value\") AS \"Desv. típica\", count(\"value\") AS \"Muestras\" FROM \"sensor_readings\" WHERE (\"variable\" = '$variable' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Muestras"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "sensor_readings\\.(.*)",
+            "renamePattern": "$1"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "row",
+      "title": "Análisis cruzado",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 6,
+      "type": "xychart",
+      "title": "Velocidad de bomba frente a caudal de salida",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "description": "Cada punto es la media de 1 min. Una nube estrecha indica relación estable bomba–caudal; la dispersión creciente con el tiempo sugiere desgaste o cavitación.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'velocidad' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(1m) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Velocidad (%)"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(1m) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Caudal salida"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "Time",
+            "mode": "inner"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8AB8FF"
+          },
+          "custom": {
+            "show": "points",
+            "pointSize": {
+              "fixed": 5
+            },
+            "pointShape": "circle",
+            "fillOpacity": 50,
+            "axisPlacement": "auto",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "mapping": "auto",
+        "series": [
+          {}
+        ],
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "xychart",
+      "title": "Linealidad del transmisor (mA frente a nivel)",
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "description": "Señal del transmisor frente al nivel calculado. Debe ser una recta (4 mA = vacío, 20 mA = lleno): la curvatura o dispersión indica deriva del sensor.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(1m) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel (L)"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"value\") / 100.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_ma' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(1m) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Señal (mA)"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "Time",
+            "mode": "inner"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B877D9"
+          },
+          "custom": {
+            "show": "points",
+            "pointSize": {
+              "fixed": 5
+            },
+            "pointShape": "circle",
+            "fillOpacity": 50,
+            "axisPlacement": "auto",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "mapping": "auto",
+        "series": [
+          {}
+        ],
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "heatmap",
+      "title": "Distribución del nivel en el tiempo",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "description": "Frecuencia con la que el depósito ha estado en cada franja de nivel. Revela los puntos de operación habituales y los extremos.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(1m) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "calculate": true,
+        "calculation": {
+          "xBuckets": {
+            "mode": "count",
+            "value": "40"
+          },
+          "yBuckets": {
+            "mode": "count",
+            "value": "20"
+          }
+        },
+        "color": {
+          "mode": "scheme",
+          "scheme": "Blues",
+          "steps": 64,
+          "exponent": 0.5,
+          "fill": "#8AB8FF",
+          "reverse": false
+        },
+        "cellGap": 1,
+        "showValue": "never",
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "unit": "suffix: L",
+          "reverse": false
+        },
+        "legend": {
+          "show": true
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
+        "tooltip": {
+          "mode": "single",
+          "yHistogram": true,
+          "showColorScale": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Muestras por minuto (últimos 5 min)",
+      "description": "Tasa de muestreo por variable. El gateway publica 1 Hz: lo esperado es 60/min.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 6,
+        "h": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT count(\"value\") / 5.0 FROM \"sensor_readings\" WHERE (\"plc\" =~ /^$plc$/) AND time > now() - 5m GROUP BY \"variable\"",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "$tag_variable"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 30
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 55
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "max": 60
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 300,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Máximo intervalo entre muestras",
+      "description": "Mayor separación entre dos muestras consecutivas en el rango. Nominal 1 s; > 5 s indica un hueco en la adquisición y > 30 s una interrupción.",
+      "gridPos": {
+        "x": 18,
+        "y": 18,
+        "w": 6,
+        "h": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT max(\"e\") FROM (SELECT elapsed(\"value\", 1s) AS \"e\" FROM \"sensor_readings\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY \"variable\") GROUP BY \"variable\"",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "$tag_variable"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 5
+              },
+              {
+                "color": "#F2495C",
+                "value": 30
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 300,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Datos en bruto (últimas 100 muestras por variable)",
+      "description": "Muestras originales del historian para las variables seleccionadas. Exportable a CSV desde el menú del panel (Inspect → Data).",
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT \"value\" FROM \"sensor_readings\" WHERE (\"variable\" =~ /^${variable:regex}$/ AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY \"variable\" ORDER BY time DESC LIMIT 100",
+          "rawQuery": true,
+          "resultFormat": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "Sin registros"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "variable"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Variable"
+              },
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Valor"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "count"
+          ],
+          "fields": "",
+          "countRows": true
+        }
+      }
+    }
+  ]
+}

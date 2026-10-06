@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: Plant-API
+    uid: plant-api
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    url: http://plant-api:8080
+    isDefault: false
+    editable: false
+    jsonData:
+      # Solo se permite consultar la API interna de la planta
+      allowedHosts:
+        - http://plant-api:8080
+      # API key de solo lectura (ApiKeyFilter de plant-api)
+      httpHeaderName1: X-API-Key
+    secureJsonData:
+      httpHeaderValue1: ${API_KEY_GRAFANA}

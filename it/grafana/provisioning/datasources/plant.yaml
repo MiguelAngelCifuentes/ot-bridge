@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-Plant
+    uid: influxdb-plant
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    database: plant
+    # usuario de solo lectura (GRANT READ ON plant)
+    user: ${INFLUX_READ_USER}
+    secureJsonData:
+      password: ${INFLUX_READ_PASSWORD}
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMode: GET

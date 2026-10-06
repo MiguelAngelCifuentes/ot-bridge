@@ -1,0 +1,2941 @@
+{
+  "uid": "otb-home",
+  "title": "00 · Visión general",
+  "description": "Portada de la planta: estado, KPIs, sinóptico y alarmas activas.",
+  "tags": [
+    "otbridge"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "OT-Bridge",
+      "type": "dashboards",
+      "tags": [
+        "otbridge"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "fiscalYearStartMonth": 0,
+  "weekStart": "monday",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "plc",
+        "label": "PLC",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "current": {
+          "selected": true,
+          "text": "plc01",
+          "value": "plc01"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "PLC offline",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#C4162A",
+        "target": {
+          "refId": "Anno",
+          "rawQuery": true,
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "influxdb",
+          "query": "SELECT \"online\" FROM \"plc_status\" WHERE (\"online\" = 0 AND \"plc\" =~ /^$plc$/) AND $timeFilter"
+        }
+      },
+      {
+        "name": "Alarmas CRITICAL",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#F2495C",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'CRITICAL' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas HIGH",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#FF9830",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'HIGH' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas WARNING",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": false,
+        "hide": true,
+        "iconColor": "#FADE2A",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'WARNING' AND $__timeFilter(ts_active)"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Estado de planta",
+      "description": "Estado derivado del registro de estado con prioridad: seta de emergencia > fallo (sensor o arranque) > contactor de bomba > parada.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT (FLOOR(last(\"value\") / 2) % 2) * 1000 + (FLOOR(last(\"value\") / 4) % 2 + FLOOR(last(\"value\") / 8) % 2) * 100 + (last(\"value\") % 2) * 10 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": 1000,
+                "to": null,
+                "result": {
+                  "text": "EMERGENCIA",
+                  "color": "#C4162A",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 100,
+                "to": 999,
+                "result": {
+                  "text": "FALLO",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 10,
+                "to": 99,
+                "result": {
+                  "text": "EN MARCHA",
+                  "color": "#73BF69",
+                  "index": 2
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": 9,
+                "result": {
+                  "text": "PARADA",
+                  "color": "#4A4A4A",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "links": [
+            {
+              "title": "Ver proceso",
+              "url": "/d/otb-process?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 22
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "PLC",
+      "description": "Último heartbeat del gateway Modbus → MQTT.",
+      "gridPos": {
+        "x": 3,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"online\") FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "EN LÍNEA",
+                  "color": "#73BF69",
+                  "index": 0
+                },
+                "0": {
+                  "text": "SIN CONEXIÓN",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "links": [
+            {
+              "title": "Ver sistema",
+              "url": "/d/otb-system?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 22
+        }
+      },
+      "noValue": "SIN DATOS"
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Disponibilidad",
+      "description": "Porcentaje de heartbeats online en el rango. < 95 % aviso, < 80 % crítico.",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"online\") * 100.0 FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 80
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 95
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver sistema",
+              "url": "/d/otb-system?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "OEE",
+      "description": "OEE = disponibilidad × rendimiento (caudal de salida / 150 l/min nominal). Calidad asumida 100 %.",
+      "gridPos": {
+        "x": 9,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"online\") FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "disponibilidad"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"value\") / 10.0 / 150.0 * 100.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "rendimiento"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 40
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 60
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver proceso",
+              "url": "/d/otb-process?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "Time",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "OEE",
+            "mode": "binary",
+            "replaceFields": true,
+            "binary": {
+              "left": "disponibilidad",
+              "operator": "*",
+              "right": "rendimiento"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Producción",
+      "description": "Volumen bombeado en el rango: integral del caudal de salida.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT integral(\"value\") / 10.0 / 60.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver proceso",
+              "url": "/d/otb-process?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Alarmas activas",
+      "description": "Alarmas no resueltas y la severidad máxima entre ellas.",
+      "gridPos": {
+        "x": 15,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT\n  count(*) AS \"Activas\",\n  COALESCE(max(CASE severity WHEN 'CRITICAL' THEN 3 WHEN 'HIGH' THEN 2 ELSE 1 END), 0) AS \"Máx.\"\nFROM alarms\nWHERE state <> 'RESOLVED'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver alarmas",
+              "url": "/d/otb-alarms?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Activas"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8E8E8E",
+                      "value": null
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Máx."
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "—",
+                        "color": "#8E8E8E",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "WARNING",
+                        "color": "#FADE2A",
+                        "index": 1
+                      },
+                      "2": {
+                        "text": "HIGH",
+                        "color": "#FF9830",
+                        "index": 2
+                      },
+                      "3": {
+                        "text": "CRITICAL",
+                        "color": "#F2495C",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "gauge",
+      "title": "Riesgo",
+      "description": "Score del endpoint de mantenimiento predictivo (F11). ≥ 30 MEDIO, ≥ 60 ALTO.",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "plant-api"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "plant-api"
+          },
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "/api/maintenance/recommendations",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "score",
+              "text": "Riesgo",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 30
+              },
+              {
+                "color": "#F2495C",
+                "value": 60
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver mantenimiento",
+              "url": "/d/otb-maintenance?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false,
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "sizing": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Gemelo",
+      "description": "Nivel real − nivel modelado por el gemelo. |desviación| > 20 L dispara alarma de balance.",
+      "gridPos": {
+        "x": 21,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"deviation\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": -20
+              },
+              {
+                "color": "#8AB8FF",
+                "value": -10
+              },
+              {
+                "color": "#FF9830",
+                "value": 10
+              },
+              {
+                "color": "#F2495C",
+                "value": 20
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver gemelo",
+              "url": "/d/otb-twin?${__url_time_range}&${plc:queryparam}",
+              "targetBlank": false
+            }
+          ],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "SIN DATOS"
+    },
+    {
+      "id": 9,
+      "type": "canvas",
+      "title": "Sinóptico de planta",
+      "description": "Vista viva del proceso: color del depósito según banda de nivel (bajo < 100 L, alto > 900 L), bomba de llenado P-101 verde en marcha, válvula de consumo V-101 azul abierta, tuberías animadas cuando hay caudal.",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 13
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "nivel"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT last(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_ent' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "caudal_ent"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT last(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "caudal_sal"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "D",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'velocidad' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "velocidad"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "E",
+          "query": "SELECT last(\"value\") / 100.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_ma' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "sensor_ma"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "F",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'modo_manual' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "modo"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "G",
+          "query": "SELECT FLOOR(last(\"value\") / 512) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "valvula"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "H",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'consigna_manual' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "consigna"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "I",
+          "query": "SELECT last(\"value\") % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "bomba"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "J",
+          "query": "SELECT (FLOOR(last(\"value\") / 2) % 2) * 1000 + (FLOOR(last(\"value\") / 4) % 2 + FLOOR(last(\"value\") / 8) % 2) * 100 + (last(\"value\") % 2) * 10 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "estado_planta"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "nivel"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: L"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#6B2A2A",
+                      "value": null
+                    },
+                    {
+                      "color": "#1F3B5C",
+                      "value": 100
+                    },
+                    {
+                      "color": "#6B4A1F",
+                      "value": 900
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "caudal_ent"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "flowlpm"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4A4A4A",
+                      "value": null
+                    },
+                    {
+                      "color": "#8AB8FF",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "caudal_sal"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "flowlpm"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4A4A4A",
+                      "value": null
+                    },
+                    {
+                      "color": "#8AB8FF",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "velocidad"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sensor_ma"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mamp"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "modo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "MODO AUTOMÁTICO",
+                        "color": "#8E8E8E",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "MODO MANUAL",
+                        "color": "#FF9830",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "valvula"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "CERRADA",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "ABIERTA",
+                        "color": "#1F4E79",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "consigna"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bomba"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "PARADA",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "EN MARCHA",
+                        "color": "#73BF69",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "estado_planta"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 1000,
+                      "to": null,
+                      "result": {
+                        "text": "EMERGENCIA",
+                        "color": "#C4162A",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 100,
+                      "to": 999,
+                      "result": {
+                        "text": "FALLO",
+                        "color": "#F2495C",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 10,
+                      "to": 99,
+                      "result": {
+                        "text": "EN MARCHA",
+                        "color": "#73BF69",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "range",
+                    "options": {
+                      "from": 0,
+                      "to": 9,
+                      "result": {
+                        "text": "PARADA",
+                        "color": "#4A4A4A",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "inlineEditing": false,
+        "showAdvancedTypes": true,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "type": "frame",
+          "name": "root",
+          "elements": [
+            {
+              "type": "text",
+              "name": "titulo",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "BALSA TK-101 · LLENADO P-101 · CONSUMO V-101"
+                },
+                "color": {
+                  "fixed": "#8E8E8E"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 2,
+                "top": 3,
+                "right": 38,
+                "bottom": 89
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "modo",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "modo",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 70,
+                "top": 3,
+                "right": 2,
+                "bottom": 89
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "lbl_ent",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "ENTRADA"
+                },
+                "color": {
+                  "fixed": "#8E8E8E"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 1,
+                "top": 30,
+                "right": 83,
+                "bottom": 64
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "caudal_ent",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "caudal_ent",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 16,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#3A3A3A"
+                },
+                "width": 2,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 1,
+                "top": 36,
+                "right": 83,
+                "bottom": 54
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "P-101",
+                  "path": "straight",
+                  "color": {
+                    "field": "caudal_ent",
+                    "fixed": "#4A4A4A"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 10
+                  },
+                  "lineStyle": {
+                    "style": "dashed",
+                    "animate": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "ellipse",
+              "name": "P-101",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "P-101"
+                },
+                "color": {
+                  "fixed": "#0B1A0B"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "bomba",
+                  "fixed": "#4A4A4A"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#8E8E8E"
+                },
+                "width": 2,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 21,
+                "top": 32,
+                "right": 69,
+                "bottom": 50
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "TK-101",
+                  "path": "straight",
+                  "color": {
+                    "field": "caudal_ent",
+                    "fixed": "#4A4A4A"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 10
+                  },
+                  "lineStyle": {
+                    "style": "dashed",
+                    "animate": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "metric-value",
+              "name": "bomba_estado",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "bomba",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 17,
+                "top": 53,
+                "right": 65,
+                "bottom": 40
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "velocidad",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "velocidad",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 13,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 17,
+                "top": 60,
+                "right": 65,
+                "bottom": 33
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "TK-101",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 14,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "nivel",
+                  "fixed": "#1E2A3A"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#5A6B80"
+                },
+                "width": 2,
+                "radius": 10
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 38,
+                "top": 14,
+                "right": 38,
+                "bottom": 28
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "V-101",
+                  "path": "straight",
+                  "color": {
+                    "field": "caudal_sal",
+                    "fixed": "#4A4A4A"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 10
+                  },
+                  "lineStyle": {
+                    "style": "dashed",
+                    "animate": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "name": "tk_tag",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "TK-101"
+                },
+                "color": {
+                  "fixed": "#DDE6F0"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 38,
+                "top": 16,
+                "right": 38,
+                "bottom": 77
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "nivel_val",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "nivel",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#FFFFFF"
+                },
+                "size": 30,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 38,
+                "top": 33,
+                "right": 38,
+                "bottom": 51
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "sensor_val",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "sensor_ma",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#DDE6F0"
+                },
+                "size": 13,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 38,
+                "top": 55,
+                "right": 38,
+                "bottom": 37
+              },
+              "connections": []
+            },
+            {
+              "type": "rectangle",
+              "name": "V-101",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "V-101"
+                },
+                "color": {
+                  "fixed": "#FFFFFF"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "valvula",
+                  "fixed": "#4A4A4A"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#8E8E8E"
+                },
+                "width": 2,
+                "radius": 4
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 67,
+                "top": 36,
+                "right": 23,
+                "bottom": 54
+              },
+              "connections": [
+                {
+                  "source": {
+                    "x": 1,
+                    "y": 0
+                  },
+                  "target": {
+                    "x": -1,
+                    "y": 0
+                  },
+                  "targetName": "salida",
+                  "path": "straight",
+                  "color": {
+                    "field": "caudal_sal",
+                    "fixed": "#4A4A4A"
+                  },
+                  "size": {
+                    "fixed": 2,
+                    "min": 1,
+                    "max": 10
+                  },
+                  "lineStyle": {
+                    "style": "dashed",
+                    "animate": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "metric-value",
+              "name": "valvula_estado",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "valvula",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 12,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 63,
+                "top": 53,
+                "right": 19,
+                "bottom": 40
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "lbl_sal",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "CONSUMO"
+                },
+                "color": {
+                  "fixed": "#8E8E8E"
+                },
+                "size": 11,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 83,
+                "top": 30,
+                "right": 1,
+                "bottom": 64
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "salida",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "caudal_sal",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 16,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#3A3A3A"
+                },
+                "width": 2,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 83,
+                "top": 36,
+                "right": 1,
+                "bottom": 54
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "lbl_consigna",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "CONSIGNA MANUAL P-101"
+                },
+                "color": {
+                  "fixed": "#8E8E8E"
+                },
+                "size": 10,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 2,
+                "top": 77,
+                "right": 53,
+                "bottom": 18
+              },
+              "connections": []
+            },
+            {
+              "type": "text",
+              "name": "lbl_estado",
+              "config": {
+                "text": {
+                  "mode": "fixed",
+                  "fixed": "ESTADO DE PLANTA"
+                },
+                "color": {
+                  "fixed": "#8E8E8E"
+                },
+                "size": 10,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 0
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 53,
+                "top": 77,
+                "right": 2,
+                "bottom": 18
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "consigna",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "consigna",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 13,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "fixed": "transparent"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#3A3A3A"
+                },
+                "width": 2,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 2,
+                "top": 83,
+                "right": 53,
+                "bottom": 5
+              },
+              "connections": []
+            },
+            {
+              "type": "metric-value",
+              "name": "estado_planta",
+              "config": {
+                "text": {
+                  "mode": "field",
+                  "field": "estado_planta",
+                  "fixed": ""
+                },
+                "color": {
+                  "fixed": "#E0E0E0"
+                },
+                "size": 13,
+                "align": "center",
+                "valign": "middle"
+              },
+              "background": {
+                "color": {
+                  "field": "estado_planta",
+                  "fixed": "#4A4A4A"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "transparent"
+                },
+                "width": 0,
+                "radius": 6
+              },
+              "constraint": {
+                "horizontal": "scale",
+                "vertical": "scale"
+              },
+              "placement": {
+                "left": 53,
+                "top": 83,
+                "right": 2,
+                "bottom": 5
+              },
+              "connections": []
+            }
+          ],
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "border": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "left": 0,
+            "top": 0,
+            "width": 100,
+            "height": 100
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Nivel real vs gemelo digital",
+      "description": "Nivel medido frente al nivel que predice el gemelo por balance de masas. Si se separan más de 20 L, hay pérdida o aporte no medido.",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel real"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"level_model\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Modelo gemelo"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nivel real"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Modelo gemelo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    6
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Caudales",
+      "description": "Caudal de entrada y de salida del depósito.",
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 6
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_ent' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Entrada"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Salida"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "flowlpm",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Entrada"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Salida"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4FC3C3"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Alarmas activas",
+      "description": "Alarmas no resueltas, ordenadas por severidad y antigüedad.",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 16,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT\n  severity::text AS \"Severidad\",\n  variable AS \"Variable\",\n  message AS \"Mensaje\",\n  state::text AS \"Estado\",\n  ts_active AS \"Desde\",\n  EXTRACT(EPOCH FROM NOW() - ts_active) AS \"Antigüedad\"\nFROM alarms\nWHERE state <> 'RESOLVED'\nORDER BY CASE severity WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END, ts_active\nLIMIT 8"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "Sin alarmas activas"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severidad"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "CRITICAL": {
+                        "text": "CRITICAL",
+                        "color": "#F2495C",
+                        "index": 0
+                      },
+                      "HIGH": {
+                        "text": "HIGH",
+                        "color": "#FF9830",
+                        "index": 1
+                      },
+                      "WARNING": {
+                        "text": "WARNING",
+                        "color": "#FADE2A",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Estado"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "ACTIVE": {
+                        "text": "ACTIVE",
+                        "color": "#F2495C",
+                        "index": 0
+                      },
+                      "ACKNOWLEDGED": {
+                        "text": "ACKNOWLEDGED",
+                        "color": "#FF9830",
+                        "index": 1
+                      },
+                      "RESOLVED": {
+                        "text": "RESOLVED",
+                        "color": "#8E8E8E",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Variable"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Desde"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Antigüedad"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "count"
+          ],
+          "fields": "",
+          "countRows": false
+        }
+      },
+      "links": []
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Último dato recibido",
+      "description": "Antigüedad de la última lectura almacenada en el historian.",
+      "gridPos": {
+        "x": 16,
+        "y": 17,
+        "w": 8,
+        "h": 3
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "nivel"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Time$/",
+          "values": false
+        },
+        "text": {
+          "valueSize": 24
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "state-timeline",
+      "title": "Conectividad PLC",
+      "description": "Historial de conexión del PLC en el rango seleccionado.",
+      "gridPos": {
+        "x": 16,
+        "y": 20,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"online\") FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "PLC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#73BF69",
+                "value": 1.0
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "En línea",
+                  "color": "#73BF69",
+                  "index": 0
+                },
+                "0": {
+                  "text": "Sin conexión",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "rowHeight": 0.8,
+        "mergeValues": true,
+        "alignValue": "left",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    }
+  ]
+}
