@@ -1,0 +1,1328 @@
+{
+  "uid": "otb-system",
+  "title": "06 · Sistema y comunicaciones",
+  "description": "Salud de la cadena de datos: PLC, ingesta, API, PostgreSQL y servidor OPC UA.",
+  "tags": [
+    "otbridge"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "OT-Bridge",
+      "type": "dashboards",
+      "tags": [
+        "otbridge"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "fiscalYearStartMonth": 0,
+  "weekStart": "monday",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "plc",
+        "label": "PLC",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "current": {
+          "selected": true,
+          "text": "plc01",
+          "value": "plc01"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "PLC offline",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#C4162A",
+        "target": {
+          "refId": "Anno",
+          "rawQuery": true,
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "influxdb",
+          "query": "SELECT \"online\" FROM \"plc_status\" WHERE (\"online\" = 0 AND \"plc\" =~ /^$plc$/) AND $timeFilter"
+        }
+      },
+      {
+        "name": "Alarmas CRITICAL",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#F2495C",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'CRITICAL' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas HIGH",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#FF9830",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'HIGH' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas WARNING",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": false,
+        "hide": true,
+        "iconColor": "#FADE2A",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'WARNING' AND $__timeFilter(ts_active)"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "PLC",
+      "description": "Último heartbeat publicado por el gateway (LWT si cae).",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"online\") FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "EN LÍNEA",
+                  "color": "#73BF69",
+                  "index": 0
+                },
+                "0": {
+                  "text": "SIN CONEXIÓN",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 22
+        }
+      },
+      "noValue": "SIN DATOS"
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Disponibilidad",
+      "description": "Porcentaje de heartbeats online en el rango.",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"online\") * 100.0 FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 95
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 99
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Desconexiones",
+      "description": "Transiciones online → offline del PLC en el rango.",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT sum(\"x\") FROM (SELECT (abs(\"d\") - \"d\") / 2 AS \"x\" FROM (SELECT difference(\"online\") AS \"d\" FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter))",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 1
+              },
+              {
+                "color": "#F2495C",
+                "value": 5
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "0"
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Último dato",
+      "description": "Antigüedad de la última lectura almacenada: > unos segundos indica ingesta detenida.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "nivel"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Time$/",
+          "values": false
+        },
+        "text": {
+          "valueSize": 20
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Ingesta",
+      "description": "Puntos de telemetría escritos por minuto (últimos 5 min). 11 variables a 1 Hz ≈ 660/min.",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT count(\"value\") / 5.0 FROM \"sensor_readings\" WHERE time > now() - 5m",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "puntos/min",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 300
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 600
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "API REST",
+      "description": "Health check de plant-api (Spring Boot actuator) consultado por Grafana.",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "plant-api"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "plant-api"
+          },
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "/actuator/health",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "status",
+              "text": "Estado",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "UP": {
+                  "text": "OPERATIVA",
+                  "color": "#73BF69",
+                  "index": 0
+                },
+                "DOWN": {
+                  "text": "CAÍDA",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Estado$/",
+          "values": false
+        },
+        "text": {
+          "valueSize": 22
+        }
+      },
+      "noValue": "SIN RESPUESTA"
+    },
+    {
+      "id": 7,
+      "type": "state-timeline",
+      "title": "Conectividad del PLC",
+      "description": "Historial de conexión PLC → gateway.",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"online\") FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "PLC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#73BF69",
+                "value": 1.0
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "En línea",
+                  "color": "#73BF69",
+                  "index": 0
+                },
+                "0": {
+                  "text": "Sin conexión",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "rowHeight": 0.8,
+        "mergeValues": true,
+        "alignValue": "left",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Ingesta por flujo de datos",
+      "description": "Puntos por minuto escritos en InfluxDB por cada flujo. Una caída a 0 localiza el eslabón roto.",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 14,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT count(\"value\") FROM \"sensor_readings\" WHERE $timeFilter GROUP BY time(1m) fill(0)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Telemetría"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT count(\"level_real\") FROM \"twin_state\" WHERE $timeFilter GROUP BY time(1m) fill(0)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Gemelo digital"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT count(\"online\") FROM \"plc_status\" WHERE $timeFilter GROUP BY time(1m) fill(0)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Heartbeat"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "puntos/min",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Telemetría"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gemelo digital"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Heartbeat"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8E8E8E"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "min"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Base de datos relacional",
+      "description": "Contenido de PostgreSQL (plant-api): alarmas, umbrales y sensores, y tamaño de la base.",
+      "gridPos": {
+        "x": 14,
+        "y": 8,
+        "w": 10,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT\n  (SELECT count(*) FROM alarms) AS \"Alarmas registradas\",\n  (SELECT count(*) FROM thresholds WHERE enabled) AS \"Umbrales activos\",\n  (SELECT count(*) FROM sensors) AS \"Sensores\",\n  pg_database_size(current_database()) AS \"Tamaño BD\""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tamaño BD"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Servidor OPC UA · opc.tcp://127.0.0.1:4840",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Estado OPC UA",
+      "description": "Nodo PLCOnline del servidor OPC UA. Grafana no habla OPC UA: se muestra el mismo flujo MQTT que alimenta los nodos (verificación directa con scripts/test_opcua.py).",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 4,
+        "h": 6
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"online\") FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "PUBLICANDO",
+                  "color": "#73BF69",
+                  "index": 0
+                },
+                "0": {
+                  "text": "DATOS INTERRUMPIDOS",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 20
+        }
+      },
+      "noValue": "SIN DATOS"
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Nodos publicados · PlantaSimulada/plc01",
+      "description": "Valores actuales de los 7 nodos del namespace otbridge.",
+      "gridPos": {
+        "x": 4,
+        "y": 17,
+        "w": 20,
+        "h": 6
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "NivelDeposito"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT last(\"value\") / 100.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_ma' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "NivelSensorMA"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT last(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_ent' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "CaudalEntrada"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "D",
+          "query": "SELECT last(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "CaudalSalida"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "E",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'velocidad' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "VelocidadBomba"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "F",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Estado"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "G",
+          "query": "SELECT last(\"online\") FROM \"plc_status\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "PLCOnline"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NivelDeposito"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: L"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NivelSensorMA"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mamp"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CaudalEntrada"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "flowlpm"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CaudalSalida"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "flowlpm"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "VelocidadBomba"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Estado"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PLCOnline"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "True",
+                        "color": "#73BF69",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "False",
+                        "color": "#F2495C",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    }
+  ]
+}

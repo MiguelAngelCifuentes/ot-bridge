@@ -1,0 +1,1735 @@
+{
+  "uid": "otb-alarms",
+  "title": "02 · Alarmas",
+  "description": "Gestión de alarmas: pendientes, KPIs ISA-18.2, bad actors, chattering e histórico.",
+  "tags": [
+    "otbridge"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "OT-Bridge",
+      "type": "dashboards",
+      "tags": [
+        "otbridge"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "fiscalYearStartMonth": 0,
+  "weekStart": "monday",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "plc",
+        "label": "PLC",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "current": {
+          "selected": true,
+          "text": "plc01",
+          "value": "plc01"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      },
+      {
+        "name": "severity",
+        "label": "Severidad",
+        "type": "custom",
+        "query": "CRITICAL,HIGH,WARNING",
+        "current": {
+          "selected": true,
+          "text": [
+            "CRITICAL",
+            "HIGH",
+            "WARNING"
+          ],
+          "value": [
+            "CRITICAL",
+            "HIGH",
+            "WARNING"
+          ]
+        },
+        "options": [
+          {
+            "text": "CRITICAL",
+            "value": "CRITICAL",
+            "selected": true
+          },
+          {
+            "text": "HIGH",
+            "value": "HIGH",
+            "selected": true
+          },
+          {
+            "text": "WARNING",
+            "value": "WARNING",
+            "selected": true
+          }
+        ],
+        "multi": true,
+        "includeAll": false,
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "state",
+        "label": "Estado",
+        "type": "custom",
+        "query": "ACTIVE,ACKNOWLEDGED,RESOLVED",
+        "current": {
+          "selected": true,
+          "text": [
+            "ACTIVE",
+            "ACKNOWLEDGED",
+            "RESOLVED"
+          ],
+          "value": [
+            "ACTIVE",
+            "ACKNOWLEDGED",
+            "RESOLVED"
+          ]
+        },
+        "options": [
+          {
+            "text": "ACTIVE",
+            "value": "ACTIVE",
+            "selected": true
+          },
+          {
+            "text": "ACKNOWLEDGED",
+            "value": "ACKNOWLEDGED",
+            "selected": true
+          },
+          {
+            "text": "RESOLVED",
+            "value": "RESOLVED",
+            "selected": true
+          }
+        ],
+        "multi": true,
+        "includeAll": false,
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "alarm_var",
+        "label": "Variable",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "definition": "SELECT DISTINCT variable FROM alarms ORDER BY 1",
+        "query": "SELECT DISTINCT variable FROM alarms ORDER BY 1",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "PLC offline",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#C4162A",
+        "target": {
+          "refId": "Anno",
+          "rawQuery": true,
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "influxdb",
+          "query": "SELECT \"online\" FROM \"plc_status\" WHERE (\"online\" = 0 AND \"plc\" =~ /^$plc$/) AND $timeFilter"
+        }
+      },
+      {
+        "name": "Alarmas CRITICAL",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#F2495C",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'CRITICAL' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas HIGH",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#FF9830",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'HIGH' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas WARNING",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": false,
+        "hide": true,
+        "iconColor": "#FADE2A",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'WARNING' AND $__timeFilter(ts_active)"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Activas",
+      "description": "Alarmas no resueltas (con los filtros aplicados).",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS value FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND state <> 'RESOLVED'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "—"
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Sin reconocer",
+      "description": "Alarmas activas que ningún operador ha reconocido todavía.",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS value FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND state = 'ACTIVE' AND ts_ack IS NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              },
+              {
+                "color": "#F2495C",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "—"
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "MTTA",
+      "description": "Tiempo medio hasta el reconocimiento (Mean Time To Acknowledge) en el rango.",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT avg(EXTRACT(EPOCH FROM ts_ack - ts_active)) AS value FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active) AND ts_ack IS NOT NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dtdurations",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "—"
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "MTTR",
+      "description": "Tiempo medio hasta la resolución (Mean Time To Resolve) en el rango.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT avg(EXTRACT(EPOCH FROM ts_resolved - ts_active)) AS value FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active) AND ts_resolved IS NOT NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dtdurations",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "—"
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Tasa de alarmas",
+      "description": "Alarmas por hora en el rango. Referencia ISA-18.2: ≤ 6/h gestionable, > 10/h sobrecarga del operador.",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) / GREATEST(EXTRACT(EPOCH FROM ($__timeTo()::timestamptz - $__timeFrom()::timestamptz)) / 3600.0, 1) AS value FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "alarmas/h",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 6
+              },
+              {
+                "color": "#F2495C",
+                "value": 10
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "—"
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Chattering",
+      "description": "Porcentaje de activaciones que se repiten menos de 60 s después de la anterior de la misma variable. > 5 % indica umbrales sin histéresis o banda muerta insuficiente.",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH a AS (SELECT ts_active, LAG(COALESCE(ts_resolved, ts_active)) OVER (PARTITION BY variable, severity ORDER BY ts_active) AS prev_end FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active)) SELECT COALESCE(100.0 * count(*) FILTER (WHERE ts_active - prev_end < INTERVAL '60 seconds') / NULLIF(count(*), 0), 0) AS value FROM a"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 5
+              },
+              {
+                "color": "#F2495C",
+                "value": 20
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "noValue": "—"
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Alarmas activas",
+      "description": "Alarmas pendientes. Orden: severidad y después antigüedad (la más antigua primero).",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT\n  severity::text AS \"Severidad\", variable AS \"Variable\", message AS \"Mensaje\", state::text AS \"Estado\",\n  ts_active AS \"Activada\", EXTRACT(EPOCH FROM NOW() - ts_active) AS \"Antigüedad\",\n  ts_ack AS \"Reconocida\", ack_by AS \"Operador\"\nFROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND state <> 'RESOLVED'\nORDER BY CASE severity WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END, ts_active"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "Sin alarmas activas"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severidad"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "CRITICAL": {
+                        "text": "CRITICAL",
+                        "color": "#F2495C",
+                        "index": 0
+                      },
+                      "HIGH": {
+                        "text": "HIGH",
+                        "color": "#FF9830",
+                        "index": 1
+                      },
+                      "WARNING": {
+                        "text": "WARNING",
+                        "color": "#FADE2A",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Estado"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "ACTIVE": {
+                        "text": "ACTIVE",
+                        "color": "#F2495C",
+                        "index": 0
+                      },
+                      "ACKNOWLEDGED": {
+                        "text": "ACKNOWLEDGED",
+                        "color": "#FF9830",
+                        "index": 1
+                      },
+                      "RESOLVED": {
+                        "text": "RESOLVED",
+                        "color": "#8E8E8E",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Variable"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Activada"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Reconocida"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              },
+              {
+                "id": "noValue",
+                "value": "—"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Operador"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "—"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Antigüedad"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              },
+              {
+                "id": "custom.width",
+                "value": 160
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8E8E8E",
+                      "value": null
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 600
+                    },
+                    {
+                      "color": "#F2495C",
+                      "value": 3600
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "count"
+          ],
+          "fields": "",
+          "countRows": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Alarmas por hora",
+      "description": "Activaciones por hora apiladas por severidad. Línea discontinua: 6 alarmas/h (ISA-18.2).",
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT $__timeGroupAlias(ts_active, '1h'), severity::text AS metric, count(*) AS value FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 1,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 6
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CRITICAL"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HIGH"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "WARNING"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FADE2A"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "piechart",
+      "title": "Distribución por severidad",
+      "gridPos": {
+        "x": 16,
+        "y": 11,
+        "w": 8,
+        "h": 8
+      },
+      "description": "Reparto de las alarmas del rango por severidad.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT severity::text AS \"Severidad\", count(*) AS \"Alarmas\" FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active) GROUP BY severity ORDER BY CASE severity WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CRITICAL"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HIGH"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "WARNING"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FADE2A"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Bad actors (top 10)",
+      "description": "Variables que más alarmas generan: primeras candidatas a revisar umbrales (ISA-18.2).",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT variable AS \"Variable\", count(*) AS \"Alarmas\" FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active) GROUP BY variable ORDER BY 2 DESC LIMIT 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 10
+              },
+              {
+                "color": "#F2495C",
+                "value": 25
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "maxVizHeight": 300,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "barchart",
+      "title": "Alarmas por hora del día",
+      "gridPos": {
+        "x": 8,
+        "y": 19,
+        "w": 8,
+        "h": 8
+      },
+      "description": "Activaciones agrupadas por hora local (Europe/Madrid): patrones por turno.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT LPAD(h::text, 2, '0') || 'h' AS \"Hora\", COALESCE(c, 0) AS \"Alarmas\"\nFROM generate_series(0, 23) AS h\nLEFT JOIN (SELECT EXTRACT(HOUR FROM ts_active AT TIME ZONE 'Europe/Madrid')::int AS hh, count(*) AS c\n           FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active) GROUP BY 1) x ON x.hh = h\nORDER BY h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8AB8FF"
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "lineWidth": 0,
+            "gradientMode": "opacity"
+          },
+          "mappings": [],
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xField": "Hora",
+        "showValue": "never",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "xTickLabelSpacing": 100,
+        "stacking": "none",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Chattering por variable",
+      "description": "Activaciones por variable y cuántas se repiten en menos de 60 s (chattering).",
+      "gridPos": {
+        "x": 16,
+        "y": 19,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH a AS (\n  SELECT variable, ts_active,\n         EXTRACT(EPOCH FROM ts_active - LAG(COALESCE(ts_resolved, ts_active))\n                 OVER (PARTITION BY variable, severity ORDER BY ts_active)) AS gap\n  FROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active))\nSELECT variable AS \"Variable\", count(*) AS \"Activaciones\",\n       count(*) FILTER (WHERE gap < 60) AS \"Repetidas < 60 s\",\n       min(gap) AS \"Intervalo mínimo\"\nFROM a GROUP BY variable ORDER BY 3 DESC, 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "Sin registros"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Intervalo mínimo"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              },
+              {
+                "id": "noValue",
+                "value": "—"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Variable"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Repetidas < 60 s"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8E8E8E",
+                      "value": null
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "count"
+          ],
+          "fields": "",
+          "countRows": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Histórico de alarmas",
+      "description": "Ciclo de vida completo de cada alarma del rango (máx. 500). Filtrable por columna.",
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT\n  ts_active AS \"Activada\", severity::text AS \"Severidad\", variable AS \"Variable\", message AS \"Mensaje\",\n  state::text AS \"Estado\", ts_ack AS \"Reconocida\", ack_by AS \"Operador\",\n  EXTRACT(EPOCH FROM ts_ack - ts_active) AS \"T. reconocimiento\",\n  ts_resolved AS \"Resuelta\", EXTRACT(EPOCH FROM COALESCE(ts_resolved, NOW()) - ts_active) AS \"Duración\"\nFROM alarms WHERE severity::text IN (${severity:sqlstring}) AND state::text IN (${state:sqlstring}) AND variable IN (${alarm_var:sqlstring}) AND $__timeFilter(ts_active)\nORDER BY ts_active DESC LIMIT 500"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "Sin registros"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severidad"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "CRITICAL": {
+                        "text": "CRITICAL",
+                        "color": "#F2495C",
+                        "index": 0
+                      },
+                      "HIGH": {
+                        "text": "HIGH",
+                        "color": "#FF9830",
+                        "index": 1
+                      },
+                      "WARNING": {
+                        "text": "WARNING",
+                        "color": "#FADE2A",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Estado"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "ACTIVE": {
+                        "text": "ACTIVE",
+                        "color": "#F2495C",
+                        "index": 0
+                      },
+                      "ACKNOWLEDGED": {
+                        "text": "ACKNOWLEDGED",
+                        "color": "#FF9830",
+                        "index": 1
+                      },
+                      "RESOLVED": {
+                        "text": "RESOLVED",
+                        "color": "#8E8E8E",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Activada"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM/YY HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Reconocida"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "noValue",
+                "value": "—"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Operador"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "—"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Resuelta"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "noValue",
+                "value": "—"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "T. reconocimiento"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              },
+              {
+                "id": "noValue",
+                "value": "—"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duración"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "count"
+          ],
+          "fields": "",
+          "countRows": true
+        }
+      }
+    }
+  ]
+}

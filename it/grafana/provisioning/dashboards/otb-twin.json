@@ -1,0 +1,1425 @@
+{
+  "uid": "otb-twin",
+  "title": "03 · Gemelo digital",
+  "description": "Gemelo de balance de masas: real frente a modelo, residuo, pérdidas no medidas y detecciones.",
+  "tags": [
+    "otbridge"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "OT-Bridge",
+      "type": "dashboards",
+      "tags": [
+        "otbridge"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "fiscalYearStartMonth": 0,
+  "weekStart": "monday",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "plc",
+        "label": "PLC",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "current": {
+          "selected": true,
+          "text": "plc01",
+          "value": "plc01"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "PLC offline",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#C4162A",
+        "target": {
+          "refId": "Anno",
+          "rawQuery": true,
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "influxdb",
+          "query": "SELECT \"online\" FROM \"plc_status\" WHERE (\"online\" = 0 AND \"plc\" =~ /^$plc$/) AND $timeFilter"
+        }
+      },
+      {
+        "name": "Alarmas CRITICAL",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#F2495C",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'CRITICAL' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas HIGH",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#FF9830",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'HIGH' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas WARNING",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": false,
+        "hide": true,
+        "iconColor": "#FADE2A",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'WARNING' AND $__timeFilter(ts_active)"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Estado del gemelo",
+      "description": "DESVIACIÓN cuando |real − modelo| supera el umbral; vuelve a NOMINAL por debajo del 50 %.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"alarmed\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "NOMINAL",
+                  "color": "#1F3B5C",
+                  "index": 0
+                },
+                "1": {
+                  "text": "DESVIACIÓN",
+                  "color": "#F2495C",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 22
+        }
+      },
+      "noValue": "SIN DATOS"
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Desviación actual",
+      "description": "Nivel real − nivel modelado. Negativo: falta agua respecto a lo esperado (posible fuga).",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"deviation\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": -20
+              },
+              {
+                "color": "#8AB8FF",
+                "value": -10.0
+              },
+              {
+                "color": "#FF9830",
+                "value": 10.0
+              },
+              {
+                "color": "#F2495C",
+                "value": 20
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Pérdida no medida",
+      "description": "Caudal que falta (positivo) o sobra (negativo) para cuadrar el balance, estimado por el observador.",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"leak_lpm\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "flowlpm",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#FF9830",
+                "value": null
+              },
+              {
+                "color": "#8AB8FF",
+                "value": -3
+              },
+              {
+                "color": "#FF9830",
+                "value": 3
+              },
+              {
+                "color": "#F2495C",
+                "value": 6
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Umbral de detección",
+      "description": "UMBRAL_L configurado en el servicio digital-twin.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"threshold\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Error medio del modelo",
+      "description": "Media de |real − modelo| en el rango: calidad del ajuste del gemelo.",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"a\") FROM (SELECT abs(\"deviation\") AS \"a\" FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter)",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 5.0
+              },
+              {
+                "color": "#F2495C",
+                "value": 10.0
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Detecciones",
+      "description": "Alarmas de balance disparadas por el gemelo en el rango.",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS value FROM alarms WHERE variable = 'balance' AND $__timeFilter(ts_active)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Nivel real frente al modelo",
+      "description": "Nivel medido (azul) y nivel predicho por el gemelo (morado discontinuo). La banda sombreada es ±20 L alrededor del modelo: salir de ella dispara la alarma de balance.",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"level_real\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel real"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"level_model\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel modelo"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT mean(\"level_model\") + mean(\"threshold\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Banda superior"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "D",
+          "query": "SELECT mean(\"level_model\") - mean(\"threshold\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Banda inferior"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nivel real"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nivel modelo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    6
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Banda superior"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              },
+              {
+                "id": "custom.fillBelowTo",
+                "value": "Banda inferior"
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Banda inferior"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Residuo (real − modelo)",
+      "description": "Diferencia entre planta y modelo. Zonas rojas: fuera de ±20 L.",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"deviation\") FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Residuo"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line+area"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "transparent",
+                "value": -20
+              },
+              {
+                "color": "#F2495C",
+                "value": 20
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Residuo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "histogram",
+      "title": "Distribución del residuo",
+      "gridPos": {
+        "x": 16,
+        "y": 13,
+        "w": 8,
+        "h": 8
+      },
+      "description": "Histograma de real − modelo en el rango: centrado y estrecho = modelo bien calibrado.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT \"deviation\" FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Residuo"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B877D9"
+          },
+          "unit": "suffix: L",
+          "custom": {
+            "fillOpacity": 60,
+            "gradientMode": "opacity",
+            "lineWidth": 1,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "bucketCount": 30,
+        "combine": false,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Variación de nivel: esperada frente a real",
+      "description": "Lo que debería variar el nivel según los caudales (morado) frente a lo que varía realmente (azul). Si divergen de forma sostenida, hay un caudal no medido.",
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT derivative(mean(\"level_real\"), 1m) FROM \"twin_state\" WHERE (\"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Real"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_ent' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "caudal_ent"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT mean(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "caudal_sal"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "L/min",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Real"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Esperada"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    6
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "Time",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "delta",
+            "mode": "binary",
+            "replaceFields": false,
+            "binary": {
+              "left": "caudal_ent",
+              "operator": "-",
+              "right": "caudal_sal"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Esperada",
+            "mode": "binary",
+            "replaceFields": false,
+            "binary": {
+              "left": "delta",
+              "operator": "/",
+              "right": "10"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "Real",
+                "Esperada"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Detecciones",
+      "description": "Últimas 20 detecciones del gemelo con su duración.",
+      "gridPos": {
+        "x": 16,
+        "y": 21,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-plant"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS \"Inicio\", state::text AS \"Estado\",\n  EXTRACT(EPOCH FROM COALESCE(ts_resolved, NOW()) - ts_active) AS \"Duración\", message AS \"Mensaje\"\nFROM alarms WHERE variable = 'balance' ORDER BY ts_active DESC LIMIT 20"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "Sin registros"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Inicio"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:DD/MM HH:mm:ss"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Estado"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "ACTIVE": {
+                        "text": "ACTIVE",
+                        "color": "#F2495C",
+                        "index": 0
+                      },
+                      "ACKNOWLEDGED": {
+                        "text": "ACKNOWLEDGED",
+                        "color": "#FF9830",
+                        "index": 1
+                      },
+                      "RESOLVED": {
+                        "text": "RESOLVED",
+                        "color": "#8E8E8E",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duración"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "count"
+          ],
+          "fields": "",
+          "countRows": false
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "text",
+      "title": "Modelo y parámetros",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 5
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\n**Modelo** — observador de balance de masas (Luenberger), 1 Hz:\n\n`nivel_modelo += (caudal_ent − caudal_sal) / 10 × dt / 60` &nbsp;·&nbsp; `nivel_modelo += k × (nivel_real − nivel_modelo) × dt`\n\n**Parámetros:** umbral `20 L` (histéresis de resolución al 50 %) · ganancia `k = 0,005 s⁻¹` · caudales del contrato en l/min ×10 (`hmi_caudal_*` del PLC) · resincronización si pasan > 120 s sin lectura.\n**Interpretación:** una pérdida no medida sostenida de *Q* unidades de caudal (l/min) produce una desviación estable ≈ *Q* / (60 k); el gemelo la estima como *pérdida no medida* y dispara la alarma de `balance` al superar el umbral.\n",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    }
+  ]
+}

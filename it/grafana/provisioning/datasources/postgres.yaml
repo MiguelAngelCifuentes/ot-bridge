@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL-Plant
+    uid: postgres-plant
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: ${PG_DB}
+    # rol de solo lectura grafana_ro (scripts/postgres_roles.py): un panel no puede modificar datos
+    user: ${PG_USER}
+    secureJsonData:
+      password: ${PG_PASSWORD}
+    isDefault: false
+    editable: false
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false

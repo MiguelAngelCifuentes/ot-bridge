@@ -1,0 +1,2619 @@
+{
+  "uid": "otb-process",
+  "title": "01 · Proceso",
+  "description": "Operación en tiempo real: variables, tendencias, estado, mando y producción.",
+  "tags": [
+    "otbridge"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "OT-Bridge",
+      "type": "dashboards",
+      "tags": [
+        "otbridge"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "fiscalYearStartMonth": 0,
+  "weekStart": "monday",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "plc",
+        "label": "PLC",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"plc\"",
+        "current": {
+          "selected": true,
+          "text": "plc01",
+          "value": "plc01"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "PLC offline",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#C4162A",
+        "target": {
+          "refId": "Anno",
+          "rawQuery": true,
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "influxdb",
+          "query": "SELECT \"online\" FROM \"plc_status\" WHERE (\"online\" = 0 AND \"plc\" =~ /^$plc$/) AND $timeFilter"
+        }
+      },
+      {
+        "name": "Alarmas CRITICAL",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#F2495C",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'CRITICAL' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas HIGH",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "#FF9830",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'HIGH' AND $__timeFilter(ts_active)"
+        }
+      },
+      {
+        "name": "Alarmas WARNING",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-plant"
+        },
+        "enable": false,
+        "hide": true,
+        "iconColor": "#FADE2A",
+        "target": {
+          "refId": "Anno",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT ts_active AS time, COALESCE(ts_resolved, NOW()) AS timeend, variable || ': ' || COALESCE(message, '') AS text, severity::text AS tags FROM alarms WHERE severity = 'WARNING' AND $__timeFilter(ts_active)"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Variables de proceso",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "gauge",
+      "title": "Nivel del depósito",
+      "description": "Nivel actual. Bandas: < 100 L nivel bajo, > 900 L nivel alto (umbrales del motor de alarmas).",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "min": 0,
+          "max": 1000,
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 100
+              },
+              {
+                "color": "#FF9830",
+                "value": 900
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false,
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "sizing": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "gauge",
+      "title": "Velocidad de bomba",
+      "description": "Velocidad del variador. > 95 % genera aviso de velocidad alta.",
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'velocidad' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Velocidad"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 95
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false,
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "sizing": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "gauge",
+      "title": "Transmisor de nivel",
+      "description": "Lazo 4–20 mA del sensor de nivel. Fuera de 3,8–20,5 mA indica fallo del lazo (NAMUR NE43).",
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") / 100.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_ma' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Señal"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "mamp",
+          "min": 0,
+          "max": 24,
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 3.8
+              },
+              {
+                "color": "#F2495C",
+                "value": 20.5
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false,
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "sizing": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Caudal de entrada",
+      "description": "Caudal de entrada con su tendencia en el rango.",
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_ent' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Entrada"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "flowlpm",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Caudal de salida",
+      "description": "Caudal de salida (producción) con su tendencia en el rango.",
+      "gridPos": {
+        "x": 18,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Salida"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "flowlpm",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4FC3C3",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Tendencias",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Nivel del depósito",
+      "description": "Nivel con las líneas de alarma de nivel bajo (100 L) y alto (900 L).",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#FF9830",
+                "value": null
+              },
+              {
+                "color": "transparent",
+                "value": 100
+              },
+              {
+                "color": "#FF9830",
+                "value": 900
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nivel"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Caudales y balance",
+      "description": "Entrada y salida (líneas) y balance neto entrada − salida (barras, eje derecho).",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_ent' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "caudal_ent"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "caudal_sal"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "flowlpm",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Entrada"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Salida"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4FC3C3"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Balance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 35
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisCenteredZero",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "Time",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Balance",
+            "mode": "binary",
+            "replaceFields": false,
+            "binary": {
+              "left": "caudal_ent",
+              "operator": "-",
+              "right": "caudal_sal"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "caudal_ent": "Entrada",
+              "caudal_sal": "Salida"
+            },
+            "excludeByName": {},
+            "indexByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Velocidad y consigna",
+      "description": "Velocidad del variador frente a la consigna manual (solo aplica en modo manual).",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'velocidad' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Velocidad real"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'consigna_manual' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Consigna manual"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "max": 100,
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Velocidad real"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Consigna manual"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "stepAfter"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Señal del transmisor",
+      "description": "Lazo 4–20 mA con las zonas de fallo NAMUR (< 3,8 mA y > 20,5 mA) sombreadas.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 100.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_ma' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Señal"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "mamp",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line+area"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "transparent",
+                "value": 3.8
+              },
+              {
+                "color": "#F2495C",
+                "value": 20.5
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "max": 24,
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Señal"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "min",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Estado de máquina y mando",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Registro de estado (bit a bit)",
+      "description": "Decodificación del registro de estado. Encendido = color; apagado = gris. Los bits 6–9 no están documentados en el contrato y se muestran para no ocultar información.",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Contactor bomba"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT FLOOR(last(\"value\") / 2) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Seta emergencia"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT FLOOR(last(\"value\") / 4) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Fallo sensor"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "D",
+          "query": "SELECT FLOOR(last(\"value\") / 8) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Fallo arranque"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "E",
+          "query": "SELECT FLOOR(last(\"value\") / 16) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel alto"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "F",
+          "query": "SELECT FLOOR(last(\"value\") / 32) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel bajo"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "G",
+          "query": "SELECT FLOOR(last(\"value\") / 64) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Consumo en reserva"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "H",
+          "query": "SELECT FLOOR(last(\"value\") / 128) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Modo manual"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "I",
+          "query": "SELECT FLOOR(last(\"value\") / 256) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Orden marcha P-101"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "J",
+          "query": "SELECT FLOOR(last(\"value\") / 512) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Orden apertura V-101"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Contactor bomba"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Contactor bomba",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Contactor bomba",
+                        "color": "#73BF69",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Seta emergencia"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Seta emergencia",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Seta emergencia",
+                        "color": "#C4162A",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fallo sensor"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Fallo sensor",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Fallo sensor",
+                        "color": "#F2495C",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fallo arranque"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Fallo arranque",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Fallo arranque",
+                        "color": "#F2495C",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nivel alto"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Nivel alto",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Nivel alto",
+                        "color": "#FF9830",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nivel bajo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Nivel bajo",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Nivel bajo",
+                        "color": "#FF9830",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Consumo en reserva"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Consumo en reserva",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Consumo en reserva",
+                        "color": "#6C8EBF",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Modo manual"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Modo manual",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Modo manual",
+                        "color": "#FF9830",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Orden marcha P-101"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Orden marcha P-101",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Orden marcha P-101",
+                        "color": "#73BF69",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Orden apertura V-101"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Orden apertura V-101",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Orden apertura V-101",
+                        "color": "#1F4E79",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "textMode": "name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 14
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Mando observado",
+      "description": "Registros de mando escritos desde FUXA (OT). IT solo los observa: nunca escribe en el PLC.",
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'modo_manual' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Modo"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'mando_marcha' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Marcha"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'mando_valvula' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Válvula"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "D",
+          "query": "SELECT last(\"value\") FROM \"sensor_readings\" WHERE (\"variable\" = 'consigna_manual' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Consigna"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Modo"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "AUTOMÁTICO",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "MANUAL",
+                        "color": "#FF9830",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Marcha"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "PARO",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "MARCHA",
+                        "color": "#73BF69",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Válvula"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "CERRADA",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "ABIERTA",
+                        "color": "#1F4E79",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Consigna"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2A3A4F"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "state-timeline",
+      "title": "Cronología de estado",
+      "description": "Qué estuvo activo y cuándo: bomba, fallos, seta, modo y válvula.",
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Bomba (contactor)"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "B",
+          "query": "SELECT FLOOR(last(\"value\") / 4) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Fallo sensor"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "C",
+          "query": "SELECT FLOOR(last(\"value\") / 8) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Fallo arranque"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "D",
+          "query": "SELECT FLOOR(last(\"value\") / 2) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Seta emergencia"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "E",
+          "query": "SELECT last(\"value\") % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'modo_manual' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Modo manual"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "F",
+          "query": "SELECT FLOOR(last(\"value\") / 512) % 2 FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Válvula abierta"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4A4A4A",
+                "value": null
+              },
+              {
+                "color": "#73BF69",
+                "value": 1.0
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OFF",
+                  "color": "#4A4A4A",
+                  "index": 0
+                },
+                "1": {
+                  "text": "ON",
+                  "color": "#73BF69",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fallo sensor"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "OFF",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "ON",
+                        "color": "#F2495C",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fallo arranque"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "OFF",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "ON",
+                        "color": "#F2495C",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Seta emergencia"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "OFF",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "ON",
+                        "color": "#C4162A",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Modo manual"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "OFF",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "ON",
+                        "color": "#FF9830",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Válvula abierta"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "OFF",
+                        "color": "#4A4A4A",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "ON",
+                        "color": "#1F4E79",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showValue": "never",
+        "rowHeight": 0.8,
+        "mergeValues": true,
+        "alignValue": "left",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Producción",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Producción en el rango",
+      "description": "Volumen bombeado: integral del caudal de salida.",
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT integral(\"value\") / 10.0 / 60.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "stat",
+      "title": "Variación de nivel",
+      "description": "Nivel final − nivel inicial del rango.",
+      "gridPos": {
+        "x": 6,
+        "y": 42,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT last(\"value\") / 10.0 - first(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "stat",
+      "title": "Rendimiento",
+      "description": "Caudal medio de salida frente al fondo de escala (150 l/min).",
+      "gridPos": {
+        "x": 12,
+        "y": 42,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 / 150.0 * 100.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FF9830",
+                "value": 40
+              },
+              {
+                "color": "#8AB8FF",
+                "value": 60
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "Tiempo en marcha",
+      "description": "Porcentaje del rango con el contactor de bomba cerrado.",
+      "gridPos": {
+        "x": 18,
+        "y": 42,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(b) * 100.0 FROM (SELECT \"value\" % 2 AS b FROM \"sensor_readings\" WHERE (\"variable\" = 'estado' AND \"plc\" =~ /^$plc$/) AND $timeFilter)",
+          "rawQuery": true,
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8AB8FF",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Producción acumulada",
+      "description": "Volumen acumulado a lo largo del rango (suma de caudales medios por minuto).",
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT CUMULATIVE_SUM(mean(\"value\")) / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'caudal_sal' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(1m) fill(0)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Producción"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Producción"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Nivel: contexto de 24 h",
+      "description": "Ciclos de llenado y vaciado de las últimas 24 h (media cada 5 min), independiente del rango.",
+      "gridPos": {
+        "x": 12,
+        "y": 46,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-plant"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-plant"
+          },
+          "refId": "A",
+          "query": "SELECT mean(\"value\") / 10.0 FROM \"sensor_readings\" WHERE (\"variable\" = 'nivel_x10' AND \"plc\" =~ /^$plc$/) AND $timeFilter GROUP BY time(5m) fill(none)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "alias": "Nivel"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: L",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": 60000,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "barAlignment": 0,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "insertNulls": false,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8AB8FF"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#FF9830",
+                "value": null
+              },
+              {
+                "color": "transparent",
+                "value": 100
+              },
+              {
+                "color": "#FF9830",
+                "value": 900
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "timeFrom": "24h"
+    }
+  ]
+}
