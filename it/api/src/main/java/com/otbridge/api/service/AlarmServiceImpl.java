@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,17 +44,17 @@ public class AlarmServiceImpl implements AlarmService {
     @Override
     @Transactional(readOnly = true)
     public PagedResponse<AlarmDto> search(AlarmState state, Severity severity, Long machineId, int page, int size) {
-        Specification<Alarm> spec = Specification.where(null);
+        List<Specification<Alarm>> filters = new ArrayList<>();
         if (state != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("state"), state));
+            filters.add((root, query, cb) -> cb.equal(root.get("state"), state));
         }
         if (severity != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("severity"), severity));
+            filters.add((root, query, cb) -> cb.equal(root.get("severity"), severity));
         }
         if (machineId != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("machine").get("id"), machineId));
+            filters.add((root, query, cb) -> cb.equal(root.get("machine").get("id"), machineId));
         }
-        Page<Alarm> alarms = alarmRepository.findAll(spec,
+        Page<Alarm> alarms = alarmRepository.findAll(Specification.allOf(filters),
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "tsActive")));
         return PagedResponse.of(alarms.map(EntityMapper::toAlarmDto));
     }
